@@ -102,7 +102,7 @@
     <!-- BOX REGISTRASI -->
     <div id="register-box" class="hidden">
       <div class="text-center mb-6">
-        <h2 class="text-2xl font-black text-gray-800 font-display">Buat Akun Ekosistem</h2>
+        <h2 class="text-2xl font-black text-gray-800 font-display">Buat Akun</h2>
         <p class="text-xs text-gray-400 mt-1">Lengkapi formulir untuk mendaftarkan akun internal baru</p>
       </div>
       
@@ -881,6 +881,32 @@ async function handleLogin(e) {
   }
 }
 
+// TAMBAHKAN FUNGSI INI DI BAWAH handleLogin
+function startRealtimeListeners() {
+  // Mendengarkan Order Baru secara Real-time
+  db.collection('orders').orderBy('tanggalBuat', 'desc').onSnapshot(snapshot => {
+    orders = snapshot.docs.map(doc => {
+      let data = doc.data();
+      // Pastikan tanggal diformat kembali ke format JavaScript
+      if (data.tanggalBuat) data.tanggalBuat = data.tanggalBuat.toDate(); 
+      return { id: doc.id, ...data };
+    });
+    renderOrderStatus();
+    renderUserHistory();
+  });
+
+  // Mendengarkan Pengajuan Formulir Baru secara Real-time
+  db.collection('submissions').orderBy('tanggal', 'desc').onSnapshot(snapshot => {
+    submissions = snapshot.docs.map(doc => {
+      let data = doc.data();
+      if (data.tanggal) data.tanggal = data.tanggal.toDate();
+      return { id: doc.id, ...data };
+    });
+    renderRequestTable();
+    if(document.getElementById('tab-report').classList.contains('active')) renderReports();
+  });
+}
+
 function handleLogout() {
   currentUser = null;
   document.getElementById('auth-container').classList.remove('hidden');
@@ -1274,7 +1300,7 @@ function checkoutCart(event){
   document.getElementById('checkout-confirm-modal').classList.remove('hidden');
 }
 
-function processFinalCheckout(btnElement){
+async function processFinalCheckout(btnElement){
   const ids = Object.keys(cart).filter(id=>cart[id]>0);
   const nama = currentUser.nama;
   const divisi = currentUser.divisi;
@@ -1289,21 +1315,22 @@ function processFinalCheckout(btnElement){
   const originalClass = btnElement.className;
   
   btnElement.disabled = true;
-  btnElement.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Diproses...`;
+  btnElement.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Mengirim ke Cloud...`;
   btnElement.className = "flex-1 bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl transition cursor-not-allowed";
 
   const items = ids.map(id=>{
     const p = products.find(x=>x.id==id);
-    p.stock -= cart[id];
+    p.stock -= cart[id]; // Kurangi stok sementara di UI
     return {id:p.id, name:p.name, qty:cart[id], unit:p.unit};
   });
   
-  const order = { 
-    id: 'ORD'+String(orderSeq++).padStart(4,'0'), 
-    tanggalBuat: new Date(),
+  const newOrderId = 'ORD' + String(Date.now()).slice(-6); // Bikin ID Unik
+  const orderData = { 
+    id: newOrderId, 
+    tanggalBuat: firebase.firestore.FieldValue.serverTimestamp(), // Jam server Firebase
     tglAmbil: tglAmbil,
     jamAmbil: jamAmbil,
-    items, 
+    items: items, 
     status: 'Belum Diambil', 
     pemohon: nama, 
     divisi: divisi,
@@ -1311,29 +1338,29 @@ function processFinalCheckout(btnElement){
     signature: signatureData 
   };
   
-  orders.unshift(order);
-  cart = {}; 
-  
-  setTimeout(() => {
+  try {
+    // KIRIM KE FIREBASE
+    await db.collection('orders').doc(newOrderId).set(orderData);
+    
+    cart = {}; 
     document.getElementById('checkout-tgl').value = '';
     document.getElementById('checkout-jam').value = '';
     clearSignature();
     
     renderCartBadge(); 
     renderKatalog(); 
-    renderOrderStatus(); 
-    renderUserHistory();
-    
     closeModal('checkout-confirm-modal');
     closeModal('cart-modal');
     
-    showInvoice(order.id);
-    showCustomToast('Checkout berhasil diproses!', 'success');
-    
+    showInvoice(newOrderId);
+    showCustomToast('Checkout berhasil dikirim ke Admin!', 'success');
+  } catch (error) {
+    showCustomToast('Gagal mengirim order: ' + error.message, 'error');
+  } finally {
     btnElement.disabled = false;
     btnElement.innerHTML = originalText;
     btnElement.className = originalClass;
-  }, 800);
+  }
 }
 
 function showInvoice(orderId){
@@ -1386,32 +1413,37 @@ function renderOrderStatus(){
   otherBody.innerHTML = generateRows(otherOrders);
 }
 
-function confirmPickup(orderId){
-  const o = orders.find(x=>x.id===orderId);
-  if(o){ 
-    o.status='Sudah Diambil'; 
-    
-    o.items.forEach(item => {
-      transactions.push({
-        date: new Date(),
-        productId: item.id,
-        divisi: o.divisi,
-        subDivisi: o.subDivisi,
-        pemohon: o.pemohon, 
-        masuk: 0,
-        keluar: item.qty,
-        signature: o.signature 
-      });
+async function confirmPickup(orderId){
+  try {
+    // UPDATE STATUS DI FIREBASE
+    await db.collection('orders').doc(orderId).update({
+      status: 'Sudah Diambil'
     });
 
-    showCustomToast(`Barang untuk ${o.pemohon} telah dikonfirmasi!`, 'success');
-    renderOrderStatus(); 
-    renderUserHistory();
-    renderKartuStok(); 
-    renderDashboard();
+    // Simpan riwayat transaksi untuk laporan (Opsional, tapi disarankan)
+    const o = orders.find(x=>x.id===orderId);
+    if(o) {
+      const batch = db.batch();
+      o.items.forEach(item => {
+        const transRef = db.collection('transactions').doc();
+        batch.set(transRef, {
+          date: firebase.firestore.FieldValue.serverTimestamp(),
+          productId: item.id,
+          divisi: o.divisi,
+          subDivisi: o.subDivisi,
+          pemohon: o.pemohon, 
+          masuk: 0,
+          keluar: item.qty
+        });
+      });
+      await batch.commit();
+    }
+
+    showCustomToast(`Barang telah dikonfirmasi!`, 'success');
+  } catch (error) {
+    showCustomToast(`Gagal konfirmasi: ` + error.message, 'error');
   }
 }
-
 function renderUserHistory() {
   const tbody = document.getElementById('user-history-body');
   if(!tbody || !currentUser) return;
