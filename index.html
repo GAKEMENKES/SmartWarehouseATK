@@ -9,7 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
   :root{
     --blue:#0064D2; --blue-dark:#0051A8; --yellow:#FDB813;
@@ -66,13 +65,20 @@
 </head>
 <body class="text-slate-700">
 
-<div id="auth-container" class="fixed inset-0 flex items-center justify-center z-[999] p-4 bg-slate-900/40 backdrop-blur-sm">
+<!-- TAMBAHKAN LAYAR LOADING INI -->
+<div id="loading-screen" class="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-900 backdrop-blur-md transition-opacity duration-300">
+  <i class="fa-solid fa-circle-notch fa-spin text-tiket-blue text-5xl mb-4"></i>
+  <h2 class="text-white font-bold font-display text-xl">Memuat Sistem...</h2>
+</div>
+
+<!-- UBAH BARIS INI (Tambahkan class 'hidden' di sebelah tulisan fixed) -->
+<div id="auth-container" class="hidden fixed inset-0 flex items-center justify-center z-[999] p-4 bg-slate-900/40 backdrop-blur-sm">
   <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 max-w-md w-full transition-all duration-300">
     
     <!-- BOX LOGIN -->
     <div id="login-box">
       <div class="text-center mb-6">
-        <h2 class="text-2xl font-black text-gray-800 font-display">Selamat Datang di         <span class="text-tiket-blue"><br>Smart Warehouse ATK</span></h2>
+        <h2 class="text-2xl font-black text-gray-800 font-display">Selamat Datang di          <span class="text-tiket-blue"><br>Smart Warehouse ATK</span></h2>
         <p class="text-xs text-gray-400 mt-1">Silakan masuk menggunakan akun internal Anda</p>
       </div>
       
@@ -164,9 +170,31 @@
         <span class="text-xl font-black text-gray-800 tracking-tight font-display">Ware<span class="text-tiket-blue">house</span></span>
         <span class="text-xs block text-gray-400 font-medium -mt-1">Internal Logistic System</span>
       </div>
+<!-- BOTTOM NAVIGATION BAR KHUSUS MOBILE -->
+  <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 flex justify-around items-center pb-safe pt-2 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)]">
+    
+    <a id="mob-nav-order" onclick="showTab('order', this, '#0064D2')" class="mob-navlink flex flex-col items-center w-16 py-1 text-tiket-blue">
+      <i class="fa-solid fa-store text-xl mb-1"></i><span class="text-[9px] font-bold">Order</span>
+    </a>
+    
+    <a id="mob-nav-form" onclick="showTab('form', this, '#7C3AED')" class="mob-navlink flex flex-col items-center w-16 py-1 text-gray-400 hover:text-purple-600 transition">
+      <i class="fa-solid fa-clipboard-check text-xl mb-1"></i><span class="text-[9px] font-bold">Formulir</span>
+    </a>
+    
+    <a id="mob-nav-riwayat" onclick="showTab('riwayat', this, '#14B8A6')" class="mob-navlink flex flex-col items-center w-16 py-1 text-gray-400 hover:text-teal-500 transition">
+      <i class="fa-solid fa-clock-rotate-left text-xl mb-1"></i><span class="text-[9px] font-bold">Riwayat</span>
+    </a>
+
+    <!-- Menu Admin di Mobile -->
+    <a id="mob-nav-dashboard" onclick="showTab('dashboard', this, '#4F46E5')" class="mob-navlink admin-only-nav hidden flex-col items-center w-16 py-1 text-gray-400 hover:text-indigo-600 transition">
+      <i class="fa-solid fa-chart-pie text-xl mb-1"></i><span class="text-[9px] font-bold">Data</span>
+    </a>
+  </div>
     </div>
 
-    <div class="flex items-center gap-1 md:gap-2 text-sm font-bold text-gray-500 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] py-3 px-1">
+
+
+    <div class="hidden md:flex items-center gap-1 md:gap-2 text-sm font-bold text-gray-500 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] py-3 px-1">
       <a id="nav-order" onclick="showTab('order',this,'#0064D2')" class="navlink active"><i class="fa-solid fa-store mr-1.5"></i>Order</a>
       <a id="nav-form" onclick="showTab('form',this,'#7C3AED')" class="navlink"><i class="fa-solid fa-clipboard-check mr-1.5"></i>Pengajuan Baru</a>
       <a id="nav-riwayat" onclick="showTab('riwayat',this,'#14B8A6')" class="navlink"><i class="fa-solid fa-clock-rotate-left mr-1.5"></i>Riwayat Order</a>
@@ -635,17 +663,6 @@
   </div>
 </div>
 
-<div id="viewer-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
-  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg fade-in overflow-hidden">
-    <div class="p-5 border-b border-gray-100 flex justify-between items-center">
-      <h3 id="viewer-title" class="font-bold font-display">Preview 3D</h3>
-      <button onclick="close3D()" class="text-gray-400 hover:text-gray-700"><i class="fa-solid fa-xmark text-xl"></i></button>
-    </div>
-    <div id="viewer-canvas-wrap" class="w-full h-80 bg-gray-50 cursor-grab active:cursor-grabbing"></div>
-    <p class="text-center text-xs text-gray-400 py-3">Klik dan geser untuk memutar model 360°</p>
-  </div>
-</div>
-
 <!-- MODAL KONFIRMASI CHECKOUT -->
 <div id="checkout-confirm-modal" class="hidden fixed inset-0 z-[70] modal-backdrop flex items-center justify-center p-4">
   <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-7 fade-in text-center">
@@ -695,6 +712,73 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<!-- MODAL EDIT BARANG (KHUSUS ADMIN) -->
+<div id="edit-modal" class="hidden fixed inset-0 z-[80] modal-backdrop flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden fade-in">
+    <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+      <div>
+        <h3 class="font-bold text-lg font-display text-gray-800"><i class="fa-solid fa-pen-to-square text-tiket-blue mr-2"></i>Edit Data Barang</h3>
+      </div>
+      <button onclick="closeModal('edit-modal')" class="text-gray-400 hover:text-gray-700"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    
+    <div class="p-6">
+      <form id="edit-product-form" onsubmit="saveEditProduct(event)" class="space-y-4">
+        <div class="flex items-center gap-4 mb-2">
+          <div id="edit-photo-preview" class="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center text-gray-300 shrink-0 overflow-hidden">
+            <i class="fa-solid fa-image text-2xl"></i>
+          </div>
+          <div class="flex-1">
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Ganti Foto Barang</label>
+            <input id="edit-photo" type="file" accept="image/*" onchange="previewEditPhoto(event)" class="w-full mt-1 text-xs">
+          </div>
+        </div>
+        
+        <div>
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Nama Barang</label>
+          <input id="edit-nama" required class="w-full mt-1 border border-gray-200 rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:border-tiket-blue">
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Kategori</label>
+            <select id="edit-kategori" required class="w-full mt-1 border border-gray-200 rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:border-tiket-blue"></select>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Satuan</label>
+            <input id="edit-satuan" required class="w-full mt-1 border border-gray-200 rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:border-tiket-blue">
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Min. Stok</label>
+            <input id="edit-min-stock" type="number" min="1" required class="w-full mt-1 border border-gray-200 rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:border-tiket-blue">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Max. Ambil</label>
+            <input id="edit-max-take" type="number" min="1" required class="w-full mt-1 border border-gray-200 rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:border-tiket-blue">
+          </div>
+        </div>
+        
+        <div>
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Khusus (Restriksi Unit)</label>
+          <select id="edit-restricted" class="w-full mt-1 border border-gray-200 rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:border-tiket-blue"></select>
+        </div>
+        
+        <div class="flex gap-3 pt-4 border-t border-gray-100 mt-4">
+          <button type="button" onclick="deleteProduct()" class="bg-white border-2 border-rose-100 hover:bg-rose-50 text-rose-600 font-bold py-2 px-4 rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-trash"></i> Hapus
+          </button>
+          <button type="submit" class="flex-1 bg-tiket-blue hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ===================== HELPER NORMALISASI DATA LAMA ===================== */
@@ -783,6 +867,44 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentUser = null;
+auth.onAuthStateChanged(async (user) => {
+  const loadingScreen = document.getElementById('loading-screen');
+  
+  if (user) {
+    try {
+      const userDoc = await db.collection('users').doc(user.uid).get();
+      if (userDoc.exists) {
+        currentUser = userDoc.data();
+        currentUser.uid = user.uid;
+        
+        document.getElementById('auth-container').classList.add('hidden');
+        document.getElementById('app-wrapper').classList.remove('hidden');
+        document.getElementById('user-display-name').textContent = currentUser.nama;
+        document.getElementById('user-display-role').textContent = currentUser.role.toUpperCase();
+
+        configureUI();
+        if (typeof startRealtimeListeners === "function") startRealtimeListeners();
+
+        // BACA MEMORI TAB TERAKHIR
+        const lastTab = localStorage.getItem('lastActiveTab') || 'order';
+        const tabElement = document.getElementById('nav-' + lastTab) || document.getElementById('nav-order');
+        showTab(lastTab, tabElement, ''); 
+      }
+    } catch (error) {
+      console.error("Gagal memuat sesi:", error);
+      document.getElementById('auth-container').classList.remove('hidden');
+    }
+  } else {
+    document.getElementById('auth-container').classList.remove('hidden');
+    document.getElementById('app-wrapper').classList.add('hidden');
+  }
+  
+  // Sembunyikan layar loading dengan animasi transisi yang halus
+  if (loadingScreen) {
+    loadingScreen.classList.add('opacity-0');
+    setTimeout(() => loadingScreen.remove(), 300);
+  }
+});
 
 function toggleAuthBox(type) {
   document.getElementById('login-box').classList.toggle('hidden', type !== 'login');
@@ -908,22 +1030,28 @@ function startRealtimeListeners() {
 }
 
 function handleLogout() {
-  currentUser = null;
-  document.getElementById('auth-container').classList.remove('hidden');
-  document.getElementById('app-wrapper').classList.add('hidden');
-  document.getElementById('login-password').value = '';
-}
-
-function handleLogout() {
-  currentUser = null;
-  document.getElementById('auth-container').classList.remove('hidden');
-  document.getElementById('app-wrapper').classList.add('hidden');
-  document.getElementById('login-password').value = '';
+  // Beri tahu Firebase untuk menghapus sesi login
+  auth.signOut().then(() => {
+    currentUser = null;
+    document.getElementById('auth-container').classList.remove('hidden');
+    document.getElementById('app-wrapper').classList.add('hidden');
+    document.getElementById('login-password').value = '';
+    
+    // Hapus memori tab terakhir agar saat login lagi mulai dari awal
+    localStorage.removeItem('lastActiveTab'); 
+    
+    showCustomToast('Berhasil keluar dari sistem.', 'success');
+  }).catch((error) => {
+    showCustomToast('Gagal logout: ' + error.message, 'error');
+  });
 }
 
 function configureUI() {
   if (!currentUser) return;
   const isUser = currentUser.role === 'user';
+
+// Letakkan di dalam function configureUI()
+document.querySelectorAll('.admin-only-nav').forEach(el => el.classList.toggle('hidden', isUser));
   
   document.getElementById('nav-input').classList.toggle('hidden', isUser);
   document.getElementById('nav-dashboard').classList.toggle('hidden', isUser);
@@ -1046,24 +1174,31 @@ function fillSelect(sel, arr, withAll, allLabel){
 function showTab(name, el, color){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
+  
+  // Reset style nav Desktop
   document.querySelectorAll('.navlink').forEach(n=>n.classList.remove('active'));
-  el.classList.add('active');
+  const desktopEl = document.getElementById('nav-'+name);
+  if (desktopEl) desktopEl.classList.add('active');
+
+  // Reset style nav Mobile
+  document.querySelectorAll('.mob-navlink').forEach(n => {
+    n.classList.remove('text-tiket-blue', 'text-purple-600', 'text-teal-500', 'text-indigo-600');
+    n.classList.add('text-gray-400');
+  });
+  
+  const mobileEl = document.getElementById('mob-nav-'+name);
+  if (mobileEl) {
+    mobileEl.classList.remove('text-gray-400');
+    mobileEl.style.color = color; 
+  }
+  
+  localStorage.setItem('lastActiveTab', name);
   
   if(name==='form') renderRequestTable();
   if(name==='dashboard') renderDashboard();
   if(name==='report') { renderReports(); renderKartuStok(); }
   if(name==='riwayat') renderUserHistory();
-}
-
-function searchAndScroll() {
-  renderKatalog(); 
-  const target = document.getElementById('katalog');
-  if(!target) return;
-  const offset = 100; 
-  const bodyRect = document.body.getBoundingClientRect().top;
-  const elementRect = target.getBoundingClientRect().top;
-  const elementPosition = elementRect - bodyRect;
-  window.scrollTo({ top: elementPosition - offset, behavior: 'smooth' });
+  window.scrollTo(0,0); // Scroll ke atas otomatis saat ganti tab di HP
 }
 
 /* ===================== KATALOG / ORDER TAB ===================== */
@@ -1075,20 +1210,25 @@ function renderKatalog(){
   grid.innerHTML = products
     .filter(p=> p.name.toLowerCase().includes(q) && (!cat || p.category===cat))
     .map(p=>{
-      const status = statusOf(p);
-      const locked = status==='kosong';
-      const photoHtml = p.photo
-        ? `<img src="${p.photo}" class="w-full h-full object-contain p-3 ${locked?'grayscale-lock':''}">`
-        : `<i class="fa-solid ${ICONS[p.category]||'fa-box'} text-5xl text-gray-300 ${locked?'grayscale-lock':''}"></i>`;
-        
-      return `
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden card-hover flex flex-col justify-between">
-        <div>
-          <div class="h-40 bg-gray-100 flex items-center justify-center p-4 relative">
-            <span class="absolute top-2 left-2">${statusBadge(status)}</span>
-            <button onclick="open3D(${p.id})" class="absolute top-2 right-2 bg-white/90 hover:bg-white text-gray-600 text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm"><i class="fa-solid fa-cube mr-1"></i>3D</button>
-            ${photoHtml}
-          </div>
+              const status = statusOf(p);
+              const locked = status==='kosong';
+              
+              // TAMBAHKAN BARIS INI UNTUK CEK ADMIN DAN TOMBOL EDIT
+             const isAdmin = true; // Diubah sementara untuk memunculkan tombol
+              const editBtnHtml = isAdmin ? `<button onclick="openEditProduct(${p.id})" class="absolute top-2 right-2 bg-white/90 hover:bg-white text-blue-600 text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow-sm border border-blue-100 z-10"><i class="fa-solid fa-pen"></i></button>` : '';
+
+              const photoHtml = p.photo
+              ? `<img src="${p.photo}" class="w-full h-full object-cover ${locked?'grayscale-lock':''}">`
+              : `<i class="fa-solid ${ICONS[p.category]||'fa-box'} text-5xl text-gray-300 z-0 ${locked?'grayscale-lock':''}"></i>`;
+                
+              return `
+              <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden card-hover flex flex-col justify-between">
+                <div>
+                  <div class="h-40 bg-gray-100 flex items-center justify-center relative overflow-hidden">
+                    <span class="absolute top-2 left-2 z-10">${statusBadge(status)}</span>
+                    ${editBtnHtml}
+                    ${photoHtml}
+                  </div>
           <div class="p-4">
             <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">${p.category}</p>
             <h3 class="font-bold text-gray-800 text-base mt-1 line-clamp-2">${p.name}</h3>
@@ -1515,7 +1655,8 @@ function toggleUploadType() {
   }
 }
 
-function submitRequest(e){
+// MENGGANTI FUNGSI PENGAJUAN LAMA MENJADI VERSI FIREBASE CLOUD
+async function submitRequest(e){
   e.preventDefault();
   
   const submitBtn = e.target.querySelector('button');
@@ -1525,44 +1666,49 @@ function submitRequest(e){
   const file = document.getElementById('req-file').files[0];
   const notaFile = document.getElementById('req-nota').files[0];
   
-  const reqDivisi = currentUser.divisi;
-  const reqSubDivisi = currentUser.subDivisi;
+  submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Mengirim...';
+  submitBtn.disabled = true;
 
-  const fileContohUrl = file ? URL.createObjectURL(file) : null;
-  const fileNotaUrl = notaFile ? URL.createObjectURL(notaFile) : null;
+  const newReqId = 'REQ' + String(Date.now()).slice(-6);
 
-  submissions.unshift({
-    id: 'REQ'+String(submissionSeq++).padStart(4,'0'),
+  const requestData = {
+    id: newReqId,
     jenis: document.getElementById('req-jenis').value,
     nama: document.getElementById('req-nama').value,
     jumlah: document.getElementById('req-jumlah').value,
     satuan: document.getElementById('req-satuan').value,
-    divisi: reqDivisi,
-    subDivisi: reqSubDivisi,
+    divisi: currentUser.divisi,
+    subDivisi: currentUser.subDivisi,
     fileContoh: file ? file.name : '-',
     fileNota: notaFile ? notaFile.name : '-',
-    fileContohUrl: fileContohUrl,
-    fileNotaUrl: fileNotaUrl,
     ket: document.getElementById('req-ket').value,
-    tanggal: new Date(),
+    tanggal: firebase.firestore.FieldValue.serverTimestamp(),
     status: 'Menunggu Diproses'
-  });
-  
-  e.target.reset();
-  renderRequestTable();
-  toggleUploadType(); 
-  
-  showCustomToast("Pengajuan Request Baru Berhasil Dibuat.", "success");
-  
-  submitBtn.innerHTML = '<i class="fa-solid fa-check-circle mr-2"></i>Berhasil Diajukan!';
-  submitBtn.className = "w-full bg-green-600 text-white font-bold px-8 py-3 rounded-xl shadow-md transition md:w-auto md:col-span-2";
-  
-  setTimeout(() => {
-    submitBtn.innerHTML = originalHtml;
-    submitBtn.className = originalClass;
-  }, 2500);
-}
+  };
 
+  try {
+    // MENGIRIM DATA KE FIREBASE
+    await db.collection('submissions').doc(newReqId).set(requestData);
+    
+    e.target.reset();
+    toggleUploadType(); 
+    
+    showCustomToast("Pengajuan Request Baru Berhasil Dibuat.", "success");
+    
+    submitBtn.innerHTML = '<i class="fa-solid fa-check-circle mr-2"></i>Berhasil Diajukan!';
+    submitBtn.className = "w-full bg-green-600 text-white font-bold px-8 py-3 rounded-xl shadow-md transition md:w-auto md:col-span-2";
+    
+    setTimeout(() => {
+      submitBtn.innerHTML = originalHtml;
+      submitBtn.className = originalClass;
+      submitBtn.disabled = false;
+    }, 2500);
+  } catch (error) {
+    showCustomToast("Error: " + error.message, "error");
+    submitBtn.innerHTML = originalHtml;
+    submitBtn.disabled = false;
+  }
+}
 function renderRequestTable(){
   const body = document.getElementById('request-table-body');
   if (!currentUser) return;
@@ -1627,35 +1773,34 @@ function renderRequestTable(){
 
 let pendingRejectId = null;
 
-function updateSubmissionStatus(id, newStatus) {
-  const s = submissions.find(x => x.id === id);
-  if(s) { 
-    if (newStatus === 'Pengajuan ditolak') {
-      pendingRejectId = id;
-      document.getElementById('reject-reason-input').value = ''; 
-      document.getElementById('reject-modal').classList.remove('hidden');
-    } else {
-      s.status = newStatus; 
-      showCustomToast(`Status diperbarui menjadi: ${newStatus}`);
-      renderRequestTable();
-      if(document.getElementById('tab-report').classList.contains('active')) renderReports();
+// MENGGANTI FUNGSI UPDATE STATUS MENJADI VERSI FIREBASE CLOUD
+async function updateSubmissionStatus(id, newStatus) {
+  if (newStatus === 'Pengajuan ditolak') {
+    pendingRejectId = id;
+    document.getElementById('reject-reason-input').value = ''; 
+    document.getElementById('reject-modal').classList.remove('hidden');
+  } else {
+    try {
+      await db.collection('submissions').doc(id).update({ status: newStatus });
+      showCustomToast(`Status diperbarui menjadi: ${newStatus}`, 'success');
+    } catch (error) {
+      showCustomToast(`Gagal update status: ` + error.message, 'error');
     }
   }
 }
 
-function confirmRejection() {
+async function confirmRejection() {
   if (!pendingRejectId) return;
-  
-  const s = submissions.find(x => x.id === pendingRejectId);
   const reason = document.getElementById('reject-reason-input').value.trim();
   
-  if (s) {
-    s.status = 'Pengajuan ditolak';
-    s.alasanTolak = reason || "Maaf, pengajuan ini telah ditinjau dan tidak dapat diproses lebih lanjut.";
-    
-    showCustomToast('Pengajuan berhasil ditolak.');
-    renderRequestTable();
-    if(document.getElementById('tab-report').classList.contains('active')) renderReports();
+  try {
+    await db.collection('submissions').doc(pendingRejectId).update({
+      status: 'Pengajuan ditolak',
+      alasanTolak: reason || "Maaf, pengajuan ini telah ditinjau dan tidak dapat diproses lebih lanjut."
+    });
+    showCustomToast('Pengajuan berhasil ditolak.', 'success');
+  } catch(error) {
+    showCustomToast('Gagal menolak pengajuan: ' + error.message, 'error');
   }
   
   document.getElementById('reject-modal').classList.add('hidden');
@@ -2027,6 +2172,10 @@ function exportKartuExcel(){
 function initSelects(){
   fillSelect(document.getElementById('category-filter'), CATEGORIES, true, 'Semua Kategori');
   fillSelect(document.getElementById('new-kategori'), CATEGORIES, false);
+  
+  // TAMBAHAN UNTUK MODAL EDIT:
+  fillSelect(document.getElementById('edit-kategori'), CATEGORIES, false);
+  fillSelect(document.getElementById('edit-restricted'), FLAT_DIVISIONS, true, 'Semua Divisi (Bebas)');
 
   const mainUnits = Object.keys(DEPARTMENTS);
   fillSelect(document.getElementById('dash-divisi'), mainUnits, true, 'Semua Divisi');
@@ -2049,48 +2198,98 @@ function initSelects(){
   fillSelect(bulanSel, months, true, 'Semua Bulan');
 }
 
-/* ===================== 3D VIEWER ===================== */
-let viewerRenderer, viewerScene, viewerCamera, viewerMesh, viewerAnim;
-function open3D(productId){
-  const p = products.find(x=>x.id===productId);
-  document.getElementById('viewer-title').textContent = 'Preview 3D — '+p.name;
-  document.getElementById('viewer-modal').classList.remove('hidden');
-  const wrap = document.getElementById('viewer-canvas-wrap');
-  wrap.innerHTML='';
-  const w = wrap.clientWidth, h = wrap.clientHeight;
-  viewerScene = new THREE.Scene();
-  viewerCamera = new THREE.PerspectiveCamera(45, w/h, 0.1, 100);
-  viewerCamera.position.set(0,1.4,4);
-  viewerRenderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
-  viewerRenderer.setSize(w,h);
-  wrap.appendChild(viewerRenderer.domElement);
-  const light = new THREE.HemisphereLight(0xffffff, 0x666666, 1.2);
-  viewerScene.add(light);
-  const dir = new THREE.DirectionalLight(0xffffff, 0.6);
-  dir.position.set(3,4,2);
-  viewerScene.add(dir);
-  const colorMap = {'Kertas & Pembukuan':0x0064D2,'Alat Tulis':0xFDB813,'Filing & Organizer':0x0F9D58,'Kebutuhan Umum':0x7C3AED};
-  const geo = new THREE.BoxGeometry(1.6,2,0.3);
-  const mat = new THREE.MeshStandardMaterial({color: colorMap[p.category]||0x0064D2, roughness:0.5, metalness:0.1});
-  viewerMesh = new THREE.Mesh(geo, mat);
-  viewerScene.add(viewerMesh);
-  let dragging=false, lastX=0, lastY=0;
-  wrap.onmousedown = e=>{dragging=true; lastX=e.clientX; lastY=e.clientY;};
-  window.onmouseup = ()=>dragging=false;
-  window.onmousemove = e=>{
-    if(!dragging) return;
-    viewerMesh.rotation.y += (e.clientX-lastX)*0.01;
-    viewerMesh.rotation.x += (e.clientY-lastY)*0.01;
-    lastX=e.clientX; lastY=e.clientY;
-  };
-  function animate(){
-    viewerAnim = requestAnimationFrame(animate);
-    if(!dragging) viewerMesh.rotation.y += 0.004;
-    viewerRenderer.render(viewerScene, viewerCamera);
+/* ===================== EDIT & HAPUS BARANG ===================== */
+let currentEditProductId = null;
+let editPhotoData = null;
+
+function openEditProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  
+  currentEditProductId = id;
+  editPhotoData = p.photo;
+
+  document.getElementById('edit-nama').value = p.name;
+  document.getElementById('edit-kategori').value = p.category;
+  document.getElementById('edit-satuan').value = p.unit;
+  document.getElementById('edit-min-stock').value = p.minStock || 5;
+  document.getElementById('edit-max-take').value = p.maxTake || 10;
+  document.getElementById('edit-restricted').value = p.restrictedTo || '';
+
+  const preview = document.getElementById('edit-photo-preview');
+  if (p.photo) {
+    preview.innerHTML = `<img src="${p.photo}" class="w-full h-full object-cover">`;
+  } else {
+    preview.innerHTML = `<i class="fa-solid fa-image text-2xl"></i>`;
   }
-  animate();
+
+  document.getElementById('edit-modal').classList.remove('hidden');
 }
-function close3D(){ cancelAnimationFrame(viewerAnim); document.getElementById('viewer-modal').classList.add('hidden'); }
+
+function previewEditPhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    editPhotoData = ev.target.result;
+    document.getElementById('edit-photo-preview').innerHTML = `<img src="${ev.target.result}" class="w-full h-full object-cover">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveEditProduct(e) {
+  e.preventDefault();
+  if (!currentEditProductId) return;
+
+  const p = products.find(x => x.id === currentEditProductId);
+  if (p) {
+    p.name = document.getElementById('edit-nama').value;
+    p.category = document.getElementById('edit-kategori').value;
+    p.unit = document.getElementById('edit-satuan').value;
+    p.minStock = Number(document.getElementById('edit-min-stock').value);
+    p.maxTake = Number(document.getElementById('edit-max-take').value);
+    
+    const restrictedValue = document.getElementById('edit-restricted').value;
+    p.restrictedTo = restrictedValue === "" ? null : restrictedValue;
+    p.photo = editPhotoData;
+  }
+
+  showCustomToast(`Data barang "${p.name}" berhasil diupdate.`, 'success');
+  closeModal('edit-modal');
+  renderKatalog();
+  renderRestockDropdown();
+  refreshDropdowns();
+}
+
+function deleteProduct() {
+  if (!currentEditProductId) return;
+  const pIndex = products.findIndex(x => x.id === currentEditProductId);
+  
+  if (pIndex > -1) {
+    const pName = products[pIndex].name;
+    if(!confirm(`Yakin ingin menghapus ${pName} dari sistem? Transaksi yang sudah terlanjur menggunakan barang ini mungkin akan kehilangan referensi namanya.`)) return;
+
+    products.splice(pIndex, 1);
+    showCustomToast(`Barang "${pName}" berhasil dihapus.`, 'success');
+
+    closeModal('edit-modal');
+    renderKatalog();
+    renderRestockDropdown();
+    refreshDropdowns();
+  }
+}
+
+function refreshDropdowns() {
+  const dashProduk = document.getElementById('dash-produk');
+  const dashVal = dashProduk.value;
+  dashProduk.innerHTML = `<option value="">Semua Barang</option>` + products.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+  dashProduk.value = products.some(p => p.id == dashVal) ? dashVal : '';
+
+  const kartuProduk = document.getElementById('kartu-produk');
+  const kartuVal = kartuProduk.value;
+  kartuProduk.innerHTML = products.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+  kartuProduk.value = products.some(p => p.id == kartuVal) ? kartuVal : (products[0]?.id || '');
+}
 
 generateMockTransactions();
 initSelects();
