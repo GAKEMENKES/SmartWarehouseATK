@@ -852,14 +852,48 @@ const firebaseConfig = {
   measurementId: "G-WC7YSM46TP"
 }
 // Inisialisasi Firebase
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
+let firebaseInitError = null;
+try {
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+} catch (err) {
+  firebaseInitError = err;
+  console.error('[GudangATK] Gagal inisialisasi Firebase:', err);
 }
+
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// ===== PENGAMAN: kalau Firebase tidak merespons dalam 10 detik, =====
+// ===== tampilkan pesan error alih-alih macet diam-diam di loading screen =====
+let authResponded = false;
+function showLoadingTimeoutError(message) {
+  const loadingScreen = document.getElementById('loading-screen');
+  if (!loadingScreen || authResponded) return;
+  loadingScreen.innerHTML = `
+    <div style="max-width:420px;text-align:center;padding:24px;">
+      <i class="fa-solid fa-triangle-exclamation" style="font-size:48px;color:#FDB813;margin-bottom:16px;"></i>
+      <h2 style="color:white;font-weight:800;font-size:20px;margin-bottom:8px;">Gagal Terhubung ke Server</h2>
+      <p style="color:#94a3b8;font-size:13px;line-height:1.6;">${message}</p>
+      <p style="color:#64748b;font-size:11px;margin-top:16px;">Buka Console browser (tekan F12) untuk detail error teknis.</p>
+      <button onclick="location.reload()" style="margin-top:20px;background:#0064D2;color:white;font-weight:700;padding:10px 24px;border-radius:12px;border:none;cursor:pointer;">Coba Lagi</button>
+    </div>`;
+}
+setTimeout(() => {
+  if (!authResponded) {
+    console.error('[GudangATK] Timeout: auth.onAuthStateChanged tidak merespons dalam 10 detik. Kemungkinan penyebab: (1) domain Firebase project salah/tidak aktif, (2) Authentication belum diaktifkan di Firebase Console, (3) koneksi internet/firewall memblokir *.firebaseapp.com atau *.googleapis.com.');
+    showLoadingTimeoutError('Sistem tidak menerima respons dari server Firebase setelah 10 detik. Kemungkinan project Firebase belum aktif, Authentication belum diaktifkan, atau koneksi internet Anda memblokir domain Google/Firebase.');
+  }
+}, 10000);
+
+if (firebaseInitError) {
+  showLoadingTimeoutError('Konfigurasi Firebase tidak valid: ' + firebaseInitError.message);
+}
+
 let currentUser = null;
 auth.onAuthStateChanged(async (user) => {
+  authResponded = true;
   const loadingScreen = document.getElementById('loading-screen');
   
   if (user) {
@@ -883,8 +917,9 @@ auth.onAuthStateChanged(async (user) => {
         showTab(lastTab, tabElement, ''); 
       }
     } catch (error) {
-      console.error("Gagal memuat sesi:", error);
+      console.error("[GudangATK] Gagal memuat sesi (kemungkinan Firestore rules memblokir akses, atau koleksi 'users' belum ada):", error);
       document.getElementById('auth-container').classList.remove('hidden');
+      showCustomToast('Gagal memuat profil: ' + error.message, 'error');
     }
   } else {
     document.getElementById('auth-container').classList.remove('hidden');
@@ -1007,6 +1042,8 @@ function startRealtimeListeners() {
     });
     renderOrderStatus();
     renderUserHistory();
+  });
+
   // Mendengarkan Kartu Stok / Transaksi
   db.collection('transactions').orderBy('date', 'asc').onSnapshot(snapshot => {
     realTransactions = snapshot.docs.map(doc => {
@@ -2034,7 +2071,7 @@ function exportDashboardExcel(){
   });
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
-  XLS.utils.book_append_sheet(wb, ws, 'Analisa ATK');
+  XLSX.utils.book_append_sheet(wb, ws, 'Analisa ATK'); // Sudah diperbaiki dari XLS menjadi XLSX
   XLSX.writeFile(wb, 'analisa-gudangATK.xlsx');
 }
 
