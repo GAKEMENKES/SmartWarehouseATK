@@ -1797,8 +1797,32 @@ function renderOrderStatus(){
   if(!todayBody || !otherBody) return;
 
   const todayDate = new Date().toISOString().split('T')[0];
-  const todayOrders = orders.filter(o => o.tglAmbil === todayDate);
-  const otherOrders = orders.filter(o => o.tglAmbil !== todayDate);
+  
+  // Ambil waktu hari ini dan reset jamnya ke 00:00 untuk akurasi selisih hari
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
+  // 1. FILTER ORDERAN: Sembunyikan jika sudah dikonfirmasi (Selesai/Batal) DAN lebih dari 3 hari
+  const activeOrders = orders.filter(o => {
+    if (o.status !== 'Belum Diambil') {
+      const pickupDate = new Date(o.tglAmbil);
+      pickupDate.setHours(0, 0, 0, 0);
+      
+      // Hitung selisih hari antara hari ini dan tanggal jadwal ambil
+      const diffTime = now - pickupDate;
+      const diffDays = diffTime / (1000 * 60 * 60 * 24);
+      
+      // Jika selisihnya lebih dari 3 hari, data tidak akan ditampilkan (false)
+      if (diffDays > 3) {
+        return false; 
+      }
+    }
+    return true; // Tampilkan orderan yang masih Belum Diambil ATAU yang selesai/batal tapi masih di bawah 3 hari
+  });
+
+  // 2. Pisahkan data yang sudah disaring ke "Hari Ini" dan "Lainnya"
+  const todayOrders = activeOrders.filter(o => o.tglAmbil === todayDate);
+  const otherOrders = activeOrders.filter(o => o.tglAmbil !== todayDate);
 
   const generateRows = (orderList) => {
     if(orderList.length === 0) return `<tr><td colspan="6" class="p-6 text-center text-gray-400">Belum ada jadwal di tabel ini.</td></tr>`;
@@ -1810,7 +1834,9 @@ function renderOrderStatus(){
         <td class="p-4"><span class="font-bold text-gray-700 block">${o.tglAmbil}</span><span class="text-xs text-rose-500 font-bold">${o.jamAmbil}</span></td>
         <td class="p-4">${o.status==='Belum Diambil'
           ? `<span class="badge bg-amber-100 text-amber-700"><span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mr-1 pulse-dot"></span>Belum Diambil</span>`
-          : `<span class="badge bg-green-100 text-green-700">Sudah Diambil</span>`}
+          : (o.status === 'Dibatalkan' 
+             ? `<span class="badge bg-rose-100 text-rose-700">Dibatalkan</span>` 
+             : `<span class="badge bg-green-100 text-green-700">Sudah Diambil</span>`)}
         </td>
         <td class="p-4 text-right flex justify-end gap-2 items-center">
           <button onclick="showInvoice('${o.id}')" class="bg-gray-100 text-gray-600 hover:bg-gray-200 text-xs font-bold px-3 py-2 rounded-lg transition"><i class="fa-solid fa-file-invoice"></i></button>
