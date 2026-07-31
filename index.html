@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GudangATK - Smart Warehouse</title>
+<title>Smart Warehouse</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
@@ -102,7 +102,7 @@
     
     <div id="login-box">
       <div class="text-center mb-6">
-        <h2 class="text-2xl font-black text-gray-800 font-display">Selamat Datang di         <span class="text-tiket-blue"><br>Smart Warehouse ATK</span></h2>
+        <h2 class="text-2xl font-black text-gray-800 font-display">Selamat Datang di          <span class="text-tiket-blue"><br>Smart Warehouse ATK</span></h2>
         <p class="text-xs text-gray-400 mt-1">Silakan masuk menggunakan akun internal Anda</p>
       </div>
       
@@ -481,15 +481,21 @@
               </div>
             </div>
             
-            <div class="col-span-1 md:col-span-2 grid grid-cols-2 gap-4">
-              <div>
-                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Khusus Unit</label>
-                <select id="new-restricted-unit" onchange="handleDropdownChange('new-restricted-unit', 'new-restricted-subunit', 'new-restricted-subunit-container', '')" class="w-full mt-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold cursor-pointer"></select>
+            <div class="col-span-1 md:col-span-2 border border-gray-100 bg-gray-50/50 p-4 rounded-2xl">
+              <label class="text-xs font-bold text-gray-500 uppercase tracking-wide"><i class="fa-solid fa-lock text-purple-500 mr-1"></i> Batasi Hak Akses Unit (Bisa Pilih Banyak)</label>
+              
+              <!-- Container untuk menampung unit yang sudah dipilih -->
+              <div id="new-restricted-tags" class="flex flex-wrap gap-2 mt-3 empty:hidden"></div>
+              
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                <select id="new-restricted-unit" onchange="handleDropdownChange('new-restricted-unit', 'new-restricted-subunit', 'new-restricted-subunit-container', '')" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold cursor-pointer"></select>
+                <div id="new-restricted-subunit-container" style="display: none;">
+                  <select id="new-restricted-subunit" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold cursor-pointer"></select>
+                </div>
               </div>
-              <div id="new-restricted-subunit-container" style="display: none;">
-                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Khusus Sub Unit</label>
-                <select id="new-restricted-subunit" class="w-full mt-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold cursor-pointer"></select>
-              </div>
+              <button type="button" onclick="addRestrictedUnit('new')" class="w-full mt-3 bg-white border border-purple-200 text-purple-600 hover:bg-purple-50 font-bold px-4 py-2 rounded-xl text-xs transition shadow-sm">
+                <i class="fa-solid fa-plus mr-1"></i> Tambahkan ke Daftar Akses
+              </button>
             </div>
 
             <button class="bg-green-600 hover:bg-green-700 text-white font-bold px-8 py-3 rounded-xl shadow-md transition w-full"><i class="fa-solid fa-floppy-disk mr-2"></i>Simpan Barang Baru</button>
@@ -763,6 +769,16 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
+<!-- MODAL FOTO FULL -->
+<div id="image-modal" class="hidden fixed inset-0 z-[120] modal-backdrop flex items-center justify-center p-4" onclick="closeModal('image-modal')">
+  <div class="relative max-w-3xl w-full max-h-[90vh] flex justify-center items-center fade-in">
+    <!-- Tombol Close -->
+    <button onclick="closeModal('image-modal')" class="absolute -top-12 right-0 text-white hover:text-gray-300 text-4xl font-bold transition z-10" title="Tutup">&times;</button>
+    <!-- Gambar Full -->
+    <img id="full-size-image" src="" class="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl" onclick="event.stopPropagation()">
+  </div>
+</div>
+
 <!-- MODAL EDIT BARANG (KHUSUS ADMIN) -->
 <div id="edit-modal" class="hidden fixed inset-0 z-[80] modal-backdrop flex items-center justify-center p-4">
   <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden fade-in">
@@ -826,15 +842,19 @@
           </div>
         </div>
         
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Khusus Unit</label>
-            <select id="edit-restricted-unit" onchange="handleDropdownChange('edit-restricted-unit', 'edit-restricted-subunit', 'edit-restricted-subunit-container', '')" class="w-full mt-1 border border-gray-200 rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:border-tiket-blue cursor-pointer"></select>
+        <div class="border border-gray-100 bg-gray-50/50 p-4 rounded-2xl">
+          <label class="text-xs font-bold text-gray-500 uppercase tracking-wide"><i class="fa-solid fa-lock text-purple-500 mr-1"></i> Batasi Hak Akses Unit</label>
+          <div id="edit-restricted-tags" class="flex flex-wrap gap-2 mt-3 empty:hidden"></div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <select id="edit-restricted-unit" onchange="handleDropdownChange('edit-restricted-unit', 'edit-restricted-subunit', 'edit-restricted-subunit-container', '')" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold cursor-pointer"></select>
+            <div id="edit-restricted-subunit-container" style="display: none;">
+              <select id="edit-restricted-subunit" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold cursor-pointer"></select>
+            </div>
           </div>
-          <div id="edit-restricted-subunit-container" style="display: none;">
-            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Khusus Sub Unit</label>
-            <select id="edit-restricted-subunit" class="w-full mt-1 border border-gray-200 rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:border-tiket-blue cursor-pointer"></select>
-          </div>
+          <button type="button" onclick="addRestrictedUnit('edit')" class="w-full mt-3 bg-white border border-purple-200 text-purple-600 hover:bg-purple-50 font-bold px-4 py-2 rounded-xl text-xs transition shadow-sm">
+            <i class="fa-solid fa-plus mr-1"></i> Tambahkan ke Daftar Akses
+          </button>
         </div>
         
         <div class="flex gap-3 pt-4 border-t border-gray-100 mt-4">
@@ -1257,6 +1277,61 @@ function closeModal(modalId) {
   if (modal) modal.classList.add('hidden');
 }
 
+// Fungsi untuk membesarkan foto
+function showFullImage(url) {
+  const imgElement = document.getElementById('full-size-image');
+  if (imgElement) {
+    imgElement.src = url;
+    document.getElementById('image-modal').classList.remove('hidden');
+  }
+}
+
+// ================= SISTEM TAG MULTIPLE UNIT =================
+let selectedRestrictedUnitsNew = [];
+let selectedRestrictedUnitsEdit = [];
+
+function addRestrictedUnit(type) {
+  const unit = document.getElementById(`${type}-restricted-unit`).value;
+  const subUnit = document.getElementById(`${type}-restricted-subunit`).value;
+  if (!unit) return;
+
+  const formatted = formatDivisiString(unit, subUnit);
+  const arr = type === 'new' ? selectedRestrictedUnitsNew : selectedRestrictedUnitsEdit;
+
+  if (arr.includes(formatted)) {
+    showCustomToast('Unit tersebut sudah ada di daftar akses.', 'error');
+    return;
+  }
+
+  arr.push(formatted);
+  renderRestrictedTags(type);
+  
+  // Reset dropdown agar mudah memilih unit lain
+  document.getElementById(`${type}-restricted-unit`).value = "";
+  handleDropdownChange(`${type}-restricted-unit`, `${type}-restricted-subunit`, `${type}-restricted-subunit-container`, '');
+}
+
+function removeRestrictedUnit(type, index) {
+  const arr = type === 'new' ? selectedRestrictedUnitsNew : selectedRestrictedUnitsEdit;
+  arr.splice(index, 1);
+  renderRestrictedTags(type);
+}
+
+function renderRestrictedTags(type) {
+  const arr = type === 'new' ? selectedRestrictedUnitsNew : selectedRestrictedUnitsEdit;
+  const container = document.getElementById(`${type}-restricted-tags`);
+  if (!container) return;
+
+  container.innerHTML = arr.map((item, i) => `
+    <span class="inline-flex items-center gap-1.5 bg-purple-100 text-purple-700 border border-purple-200 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-sm">
+      ${item} 
+      <i class="fa-solid fa-times cursor-pointer hover:text-rose-500 ml-1 transition" onclick="removeRestrictedUnit('${type}', ${i})"></i>
+    </span>
+  `).join('');
+}
+// ==========================================================
+
+
 function statusOf(p){ 
   if(p.stock <= 0) return 'kosong'; 
   if(p.stock <= (p.minStock || 20)) return 'menipis'; 
@@ -1313,34 +1388,69 @@ function renderKatalog(){
   const q = (document.getElementById('search-input').value||'').toLowerCase();
   const cat = document.getElementById('category-filter').value;
   
-  grid.innerHTML = products
-    .filter(p=> p.name.toLowerCase().includes(q) && (!cat || p.category===cat))
-    .map(p=>{
-              const status = statusOf(p);
-              const locked = status==='kosong';
-              
-              const isAdmin = currentUser && currentUser.role === 'admin';
-              const editBtnHtml = isAdmin ? `<button onclick="openEditProduct('${p.id}')" class="absolute top-2 right-2 bg-white/90 hover:bg-white text-blue-600 text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow-sm border border-blue-100 z-10"><i class="fa-solid fa-pen"></i></button>` : '';
+  // 1. Filter data produk sesuai pencarian dan dropdown kategori
+  let filteredProducts = products.filter(p => p.name.toLowerCase().includes(q) && (!cat || p.category===cat));
 
-              const photoHtml = p.photo
-              ? `<img src="${p.photo}" class="w-full h-full object-cover ${locked?'grayscale-lock':''}">`
-              : `<i class="fa-solid ${ICONS[p.category]||'fa-box'} text-5xl text-gray-300 z-0 ${locked?'grayscale-lock':''}"></i>`;
-                
-             return `
-              <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 overflow-hidden card-hover flex flex-col justify-between">
-                <div>
-                  <div class="h-28 sm:h-40 bg-gray-100 flex items-center justify-center relative overflow-hidden">
-                    <span class="absolute top-2 left-2 z-10 scale-75 sm:scale-100 origin-top-left">${statusBadge(status)}</span>
-                    ${editBtnHtml}
-                    ${photoHtml}
-                  </div>
+  // Jika produk tidak ditemukan
+  if (filteredProducts.length === 0) {
+    grid.innerHTML = `<p class="col-span-full text-center text-gray-400 py-10">Produk tidak ditemukan.</p>`;
+    return;
+  }
+
+  // 2. Mengurutkan barang berdasarkan nama secara Ascending (A-Z)
+  filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
+
+  // 3. Mengelompokkan barang berdasarkan Kategori
+  const groupedProducts = {};
+  filteredProducts.forEach(p => {
+    if (!groupedProducts[p.category]) groupedProducts[p.category] = [];
+    groupedProducts[p.category].push(p);
+  });
+
+  // 4. Render tampilan ke HTML
+  let html = '';
+  
+  // Ambil daftar kategori yang ada pada hasil filter dan urutkan kategorinya
+  const sortedCategories = Object.keys(groupedProducts).sort();
+
+  sortedCategories.forEach(category => {
+    // Render Judul Sub-Bab (Kategori) menggunakan col-span-full agar full width
+    html += `
+      <div class="col-span-full mt-4 mb-1">
+        <h3 class="text-lg font-extrabold text-gray-800 flex items-center gap-2 font-display uppercase tracking-wide">
+          <i class="fa-solid ${ICONS[category] || 'fa-box'} text-tiket-blue"></i> ${category}
+        </h3>
+        <hr class="mt-2 border-gray-200">
+      </div>
+    `;
+
+    // Render kartu produk untuk kategori tersebut
+    html += groupedProducts[category].map(p => {
+      const status = statusOf(p);
+      const locked = status === 'kosong';
+      const isAdmin = currentUser && currentUser.role === 'admin';
+      const editBtnHtml = isAdmin ? `<button onclick="openEditProduct('${p.id}')" class="absolute top-2 right-2 bg-white/90 hover:bg-white text-blue-600 text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow-sm border border-blue-100 z-10"><i class="fa-solid fa-pen"></i></button>` : '';
+
+      // MODIFIKASI: Menambahkan onclick, cursor-pointer dan hover scale
+      const photoHtml = p.photo
+        ? `<img src="${p.photo}" onclick="showFullImage('${p.photo}')" title="Klik untuk memperbesar" class="w-full h-full object-cover cursor-pointer hover:scale-110 transition-transform duration-500 ${locked?'grayscale-lock':''}">`
+        : `<i class="fa-solid ${ICONS[p.category]||'fa-box'} text-5xl text-gray-300 z-0 ${locked?'grayscale-lock':''}"></i>`;
+        
+      return `
+      <div class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 overflow-hidden card-hover flex flex-col justify-between">
+        <div>
+          <div class="h-28 sm:h-40 bg-gray-100 flex items-center justify-center relative overflow-hidden">
+            <span class="absolute top-2 left-2 z-10 scale-75 sm:scale-100 origin-top-left">${statusBadge(status)}</span>
+            ${editBtnHtml}
+            ${photoHtml}
+          </div>
           <div class="p-2 sm:p-4">
             <p class="text-[9px] sm:text-xs text-gray-400 font-bold uppercase tracking-wider">
-  ${p.category} 
-  ${p.kodeSakti ? `<span class="ml-1 text-tiket-blue font-black">#${p.kodeSakti}</span>` : ''}
-</p>
+              ${p.category} 
+              ${p.kodeSakti ? `<span class="ml-1 text-tiket-blue font-black">#${p.kodeSakti}</span>` : ''}
+            </p>
             <h3 class="font-bold text-gray-800 text-xs sm:text-base mt-0.5 sm:mt-1 line-clamp-2">${p.name}</h3>
-            ${p.restrictedTo ? `<div class="mt-1 sm:mt-2 text-[8px] sm:text-[10px] font-bold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded-md inline-block border border-purple-200"><i class="fa-solid fa-lock mr-1"></i>Khusus: ${p.restrictedTo}</div>` : ''}
+            ${p.restrictedTo ? `<div class="mt-1 sm:mt-2 text-[8px] sm:text-[10px] font-bold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded-md inline-block border border-purple-200 truncate max-w-[200px]" title="${Array.isArray(p.restrictedTo) ? p.restrictedTo.join(', ') : p.restrictedTo}"><i class="fa-solid fa-lock mr-1"></i>Khusus: ${Array.isArray(p.restrictedTo) ? p.restrictedTo.length + ' Unit' : p.restrictedTo}</div>` : ''}
             
             <div class="mt-2 sm:mt-3 flex flex-col gap-0.5 sm:gap-1 p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gray-50">
               <div class="flex justify-between items-center">
@@ -1369,7 +1479,10 @@ function renderKatalog(){
           `}
         </div>
       </div>`;
-    }).join('') || `<p class="col-span-full text-center text-gray-400 py-10">Produk tidak ditemukan.</p>`;
+    }).join('');
+  });
+
+  grid.innerHTML = html;
 }
 
 function addToCart(id, event){
@@ -1569,9 +1682,17 @@ function checkoutCart(event){
 
   for (let i = 0; i < ids.length; i++) {
     const p = products.find(x => x.id == ids[i]);
-    if (p.restrictedTo && p.restrictedTo !== combinedDivisiString) {
-      showCustomToast(`Akses Ditolak! Barang "${p.name}" khusus unit ${p.restrictedTo}. Hapus dari keranjang.`, 'error');
-      return;
+    if (p.restrictedTo) {
+        // Cek apakah data baru (array) atau data lama (string)
+        const isAllowed = Array.isArray(p.restrictedTo) 
+            ? p.restrictedTo.includes(combinedDivisiString) 
+            : p.restrictedTo === combinedDivisiString;
+            
+        if (!isAllowed) {
+            const allowedText = Array.isArray(p.restrictedTo) ? p.restrictedTo.join(' / ') : p.restrictedTo;
+            showCustomToast(`Akses Ditolak! Barang "${p.name}" hanya untuk unit: ${allowedText}.`, 'error');
+            return;
+        }
     }
   }
 
@@ -2112,9 +2233,7 @@ async function submitNewProduct(e){
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Menyimpan...';
 
-  const unit = document.getElementById('new-restricted-unit').value;
-  const subUnit = document.getElementById('new-restricted-subunit').value;
-  const restrictedValue = unit ? formatDivisiString(unit, subUnit) : null;
+  const restrictedValue = selectedRestrictedUnitsNew.length > 0 ? selectedRestrictedUnitsNew : null;
   
   const newProductId = rtdb.ref('products').push().key; 
 
@@ -2166,6 +2285,8 @@ async function submitNewProduct(e){
     e.target.reset();
     document.getElementById('new-photo-preview').innerHTML = `<i class="fa-solid fa-image text-2xl"></i>`;
     newPhotoData = null;
+    selectedRestrictedUnitsNew = []; 
+    renderRestrictedTags('new');
   } catch(error) {
     showCustomToast('Gagal menambah barang: ' + error.message, 'error');
   } finally {
@@ -2583,20 +2704,14 @@ function openEditProduct(id) {
   document.getElementById('edit-min-stock').value = p.minStock || 5;
   document.getElementById('edit-max-take').value = p.maxTake || 10;
   
+  selectedRestrictedUnitsEdit = [];
   if (p.restrictedTo) {
-    let u = p.restrictedTo;
-    let s = '';
-    if (u.includes('(') && u.includes(')')) {
-        const parts = u.split('(');
-        u = parts[0].trim();
-        s = parts[1].replace(')', '').trim();
-    }
-    document.getElementById('edit-restricted-unit').value = u;
-    handleDropdownChange('edit-restricted-unit', 'edit-restricted-subunit', 'edit-restricted-subunit-container', s);
-  } else {
-    document.getElementById('edit-restricted-unit').value = '';
-    handleDropdownChange('edit-restricted-unit', 'edit-restricted-subunit', 'edit-restricted-subunit-container', '');
+    if (typeof p.restrictedTo === 'string') selectedRestrictedUnitsEdit = [p.restrictedTo];
+    else if (Array.isArray(p.restrictedTo)) selectedRestrictedUnitsEdit = [...p.restrictedTo];
   }
+  renderRestrictedTags('edit');
+  document.getElementById('edit-restricted-unit').value = '';
+  handleDropdownChange('edit-restricted-unit', 'edit-restricted-subunit', 'edit-restricted-subunit-container', '');
 
   const preview = document.getElementById('edit-photo-preview');
   if (p.photo) {
@@ -2636,9 +2751,7 @@ async function saveEditProduct(e) {
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Menyimpan...';
 
-  const unit = document.getElementById('edit-restricted-unit').value;
-  const subUnit = document.getElementById('edit-restricted-subunit').value;
-  const restrictedValue = unit ? formatDivisiString(unit, subUnit) : null;
+  const restrictedValue = selectedRestrictedUnitsEdit.length > 0 ? selectedRestrictedUnitsEdit : null;
 
   let uploadedPhotoUrl = null;
   try {
