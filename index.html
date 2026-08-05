@@ -65,6 +65,12 @@
   .step-item.completed .step-line { background-color: #7C3AED; }
   .step-item:last-child .step-line { display: none; }
 
+  /* Custom Tracker Styles (Status Khusus) */
+  .step-item.rejected .step-icon { background-color: #E11D48; color: white; border-color: #E11D48; box-shadow: 0 0 0 4px rgba(225,29,72,0.15); }
+  .step-item.rejected .step-line { background-color: #E11D48; }
+  .step-item.warning .step-icon { background-color: #F59E0B; color: white; border-color: #F59E0B; box-shadow: 0 0 0 4px rgba(245,158,11,0.15); }
+  .step-item.warning .step-line { background-color: #F59E0B; }
+
   @media print {
     @page { size: landscape; margin: 10mm; }
     body { background: white !important; }
@@ -232,9 +238,9 @@
             <i class="fa-solid fa-calendar-day text-rose-500"></i> Jadwal Pengambilan Hari Ini
           </h2>
         </div>
-        <div class="bg-white rounded-2xl shadow-sm border border-rose-100 overflow-hidden overflow-x-auto">
+        <div class="bg-white rounded-2xl shadow-sm border border-rose-100 overflow-hidden overflow-x-auto max-h-[450px] relative overflow-y-auto">
           <table class="w-full text-left border-collapse text-sm min-w-[900px]">
-            <thead>
+            <thead class="sticky top-0 z-10">
               <tr class="text-xs font-bold text-blue-900 uppercase bg-gradient-to-br from-[#FFCE3A] to-[#FDB813] border-b border-[#D99A0B] shadow-sm">
                 <th class="p-4">Order & Tanggal</th><th class="p-4">Pemohon & Unit</th><th class="p-4 w-1/3">Item</th><th class="p-4">Jadwal Ambil</th><th class="p-4">Status</th><th class="p-4 text-right">Aksi Admin</th>
               </tr>
@@ -247,9 +253,9 @@
             <span class="w-2 h-7 bg-tiket-blue rounded-full inline-block"></span> Jadwal Pengambilan Lainnya
           </h2>
         </div>
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto max-h-[450px] relative overflow-y-auto">
           <table class="w-full text-left border-collapse text-sm min-w-[900px]">
-            <thead>
+            <thead class="sticky top-0 z-10">
               <tr class="text-xs font-bold text-white uppercase bg-gradient-to-br from-blue-500 to-blue-800 border-b border-blue-800 shadow-sm">
                 <th class="p-4">Order & Tanggal</th><th class="p-4">Pemohon & Unit</th><th class="p-4 w-1/3">Item</th><th class="p-4">Jadwal Ambil</th><th class="p-4">Status</th><th class="p-4 text-right">Aksi Admin</th>
               </tr>
@@ -299,8 +305,8 @@
           </div>
           
           <div class="md:col-span-2">
-            <label id="req-file-label" class="text-xs font-bold text-gray-400 uppercase tracking-wide">Upload Contoh File (PDF)</label>
-            <input id="req-file" type="file" accept="application/pdf" class="w-full mt-1 border border-dashed border-gray-300 rounded-xl px-4 py-3 text-sm transition-all duration-300">
+            <label id="req-file-label" class="text-xs font-bold text-gray-400 uppercase tracking-wide">Upload Contoh File (PDF / JPG)</label>
+            <input id="req-file" type="file" accept="application/pdf, image/jpeg, image/png, image/jpg" class="w-full mt-1 border border-dashed border-gray-300 rounded-xl px-4 py-3 text-sm transition-all duration-300">
           </div>
 
           <div class="md:col-span-2">
@@ -329,7 +335,8 @@
             <tr class="text-xs font-bold text-white uppercase bg-gradient-to-br from-purple-500 to-purple-700 border-b border-purple-800 shadow-sm">
               <th class="p-4">Tanggal</th>
               <th class="p-4">Jenis</th>
-              <th class="p-4">Nama</th>
+              <th class="p-4">Nama Barang</th>
+              <th class="p-4">Pemohon</th>
               <th class="p-4">Kebutuhan</th>
               <th class="p-4">Asal Unit</th>
               <th class="p-4">Status</th>
@@ -682,6 +689,7 @@
   </div>
 </div> 
 
+<!-- MODAL PROGRESS TRACKER -->
 <div id="progress-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
   <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl fade-in overflow-hidden">
     <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
@@ -689,13 +697,22 @@
         <h3 class="font-bold text-lg font-display text-gray-800"><i class="fa-solid fa-truck-fast text-tiket-blue mr-2"></i>Lacak Transparansi Pengajuan</h3>
         <p id="progress-subtitle" class="text-xs text-gray-500 mt-0.5">Detail progress request barang / formulir Anda.</p>
       </div>
-          </div>
+    </div>
     <div class="p-8">
+      <!-- Banner Ditolak -->
       <div id="progress-rejected-banner" class="hidden bg-rose-50 text-rose-700 border border-rose-200 rounded-xl p-4 mb-6 flex items-center gap-3">
         <i class="fa-solid fa-circle-xmark text-2xl"></i>
         <div>
           <h4 class="font-bold text-sm">Pengajuan Ditolak</h4>
           <p class="text-xs mt-0.5">Maaf, pengajuan ini telah ditinjau dan tidak dapat diproses lebih lanjut.</p>
+        </div>
+      </div>
+      <!-- Banner Diterima Dengan Catatan -->
+      <div id="progress-notes-banner" class="hidden bg-amber-50 text-amber-700 border border-amber-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+        <i class="fa-solid fa-clipboard-check text-2xl"></i>
+        <div>
+          <h4 class="font-bold text-sm">Diterima dengan Catatan</h4>
+          <p id="progress-notes-text" class="text-xs mt-0.5">Ada catatan khusus dari Admin.</p>
         </div>
       </div>
       <div id="progress-container" class="flex justify-between relative mt-4"></div>
@@ -772,16 +789,17 @@
   </div>
 </div>
 
+<!-- MODAL PENOLAKAN & CATATAN ADMIN -->
 <div id="reject-modal" class="hidden fixed inset-0 z-[60] modal-backdrop flex items-center justify-center p-4">
   <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-7 fade-in">
-    <h3 class="font-bold text-lg mb-2 font-display text-rose-600 flex items-center">
+    <h3 id="reject-modal-title" class="font-bold text-lg mb-2 font-display text-rose-600 flex items-center">
       <i class="fa-solid fa-triangle-exclamation mr-2"></i> Alasan Penolakan
     </h3>
-    <p class="text-sm text-gray-500 mb-5">Silakan masukkan alasan penolakan agar pengguna (User) mengetahui mengapa pengajuan ini tidak dapat diproses.</p>
-    <textarea id="reject-reason-input" rows="3" placeholder="Contoh: Anggaran tidak tersedia / Formulir sudah ada di gudang..." class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-rose-500 mb-5 bg-gray-50"></textarea>
+    <p class="text-sm text-gray-500 mb-5">Silakan masukkan alasan atau catatan agar pengguna (User) mengetahui status pengajuan ini.</p>
+    <textarea id="reject-reason-input" rows="3" placeholder="Contoh: Disetujui 500 lembar / Anggaran tidak tersedia..." class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:border-rose-500 mb-5 bg-gray-50"></textarea>
     <div class="flex gap-3 justify-end">
       <button onclick="cancelRejection()" class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-5 rounded-xl shadow-sm transition">Batal</button>
-      <button onclick="confirmRejection()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-md transition">Tolak Pengajuan</button>
+      <button id="reject-btn-confirm" onclick="confirmRejection()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-md transition">Tolak Pengajuan</button>
     </div>
   </div>
 </div>
@@ -1009,7 +1027,8 @@ const DEPARTMENTS = {
   "PPI": [],
   "Komite Mutu": [],
   "Tim Satuan": ["Tim Satuan Kepatuhan Intern (SKI)"],
-  "Porter":[]
+  "Porter":[],
+  "CSSD":[]
 };
 
 function formatDivisi(unit, sub) {
@@ -1038,13 +1057,34 @@ const rtdb = firebase.database();
 const prascymb = 'prascymb';
 const z7zxstdt = 'z7zxstdt';
 
+// Helper pembaca file Base64 Async
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+    reader.readAsDataURL(file);
+  });
+}
+
+// Helper kompresi gambar Async
+function compressImageAsync(file) {
+  return new Promise((resolve, reject) => {
+    // Memasukkan angka 1280 (ukuran) dan 0.8 (kualitas 80%) khusus untuk lampiran pengajuan
+    compressImage(file, (compressedData) => {
+      resolve(compressedData);
+    }, 1280, 0.8);
+  });
+}
+
+// Endpoint Cloudinary auto/upload agar mendukung Dokumen/PDF & Gambar
 async function uploadToCloudinary(base64Data) {
   if (!base64Data) return null;
   const formData = new FormData();
   formData.append('file', base64Data);
   formData.append('upload_preset', z7zxstdt);
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${prascymb}/image/upload`, { method: 'POST', body: formData });
-  if (!response.ok) throw new Error('Upload gambar ke Cloudinary gagal.');
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${prascymb}/auto/upload`, { method: 'POST', body: formData });
+  if (!response.ok) throw new Error('Upload gambar/dokumen ke Cloudinary gagal.');
   const data = await response.json();
   return data.secure_url; 
 }
@@ -1815,6 +1855,22 @@ function renderOrderStatus(){
     } return true;
   });
 
+  activeOrders.sort((a, b) => {
+    const dateA = new Date(a.tglAmbil);
+    const dateB = new Date(b.tglAmbil);
+    
+    if (dateA < dateB) return -1;
+    if (dateA > dateB) return 1;
+    
+    const timeA = String(a.jamAmbil || "").substring(0, 5); 
+    const timeB = String(b.jamAmbil || "").substring(0, 5);
+    
+    if (timeA < timeB) return -1;
+    if (timeA > timeB) return 1;
+    
+    return 0;
+  });
+
   const todayOrders = activeOrders.filter(o => o.tglAmbil === todayDate); const otherOrders = activeOrders.filter(o => o.tglAmbil !== todayDate);
   const generateRows = (orderList) => {
     if(orderList.length === 0) return `<tr><td colspan="6" class="p-6 text-center text-gray-400">Belum ada jadwal di tabel ini.</td></tr>`;
@@ -1859,39 +1915,106 @@ function renderUserHistory() {
 
 function toggleUploadType() {
   const jenis = document.getElementById('req-jenis').value; const label = document.getElementById('req-file-label'); const input = document.getElementById('req-file');
-  if (jenis === 'Barang Baru') { label.innerText = 'Upload Contoh Gambar (JPG/PNG)'; input.accept = 'image/jpeg, image/png, image/jpg'; } 
-  else { label.innerText = 'Upload Contoh File (PDF)'; input.accept = 'application/pdf'; }
+  if (jenis === 'Barang Baru') { 
+      label.innerText = 'Upload Contoh Gambar (JPG/PNG)'; 
+      input.accept = 'image/jpeg, image/png, image/jpg'; 
+  } else { 
+      label.innerText = 'Upload Contoh File (PDF / JPG)'; 
+      input.accept = 'application/pdf, image/jpeg, image/png, image/jpg'; 
+  }
 }
 
+/* ===================== FORMULIR PENGAJUAN BARU & UPLOAD FIX ===================== */
 async function submitRequest(e){
   e.preventDefault();
-  const submitBtn = e.target.querySelector('button'); const originalHtml = submitBtn.innerHTML; const originalClass = submitBtn.className;
-  const file = document.getElementById('req-file').files[0]; const notaFile = document.getElementById('req-nota').files[0];
-  submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Mengirim...'; submitBtn.disabled = true;
+  const submitBtn = e.target.querySelector('button'); 
+  const originalHtml = submitBtn.innerHTML; 
+  const originalClass = submitBtn.className;
+  
+  const file = document.getElementById('req-file').files[0]; 
+  const notaFile = document.getElementById('req-nota').files[0];
+  
+  // Validasi Ukuran PDF Maksimal 2MB
+  const MAX_PDF_SIZE = 2 * 1024 * 1024;
+  if (file && file.type === 'application/pdf' && file.size > MAX_PDF_SIZE) {
+    showCustomToast("Gagal: Ukuran File Contoh PDF maksimal 2MB!", "error"); return;
+  }
+  if (notaFile && notaFile.type === 'application/pdf' && notaFile.size > MAX_PDF_SIZE) {
+    showCustomToast("Gagal: Ukuran File Nota PDF maksimal 2MB!", "error"); return;
+  }
+
+  submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Mengirim...'; 
+  submitBtn.disabled = true;
+
+  let fileContohUrl = '-'; 
+  let fileNotaUrl = '-';
+  
+  try {
+    if (file) {
+      if (file.type.startsWith('image/')) {
+        const compressedBase64 = await compressImageAsync(file);
+        fileContohUrl = await uploadToCloudinary(compressedBase64);
+      } else {
+        const base64Contoh = await readFileAsBase64(file);
+        fileContohUrl = await uploadToCloudinary(base64Contoh);
+      }
+    }
+    
+    if (notaFile) {
+      if (notaFile.type.startsWith('image/')) {
+        const compressedBase64 = await compressImageAsync(notaFile);
+        fileNotaUrl = await uploadToCloudinary(compressedBase64);
+      } else {
+        const base64Nota = await readFileAsBase64(notaFile);
+        fileNotaUrl = await uploadToCloudinary(base64Nota);
+      }
+    }
+  } catch(error) {
+    showCustomToast("Gagal mengupload lampiran: " + error.message, "error");
+    submitBtn.innerHTML = originalHtml; 
+    submitBtn.disabled = false; 
+    return;
+  }
 
   const newReqId = 'REQ' + String(Date.now()).slice(-6);
   const requestData = {
     id: newReqId, jenis: document.getElementById('req-jenis').value, nama: document.getElementById('req-nama').value,
     jumlah: document.getElementById('req-jumlah').value, satuan: document.getElementById('req-satuan').value,
-    divisi: currentUser.divisi, subDivisi: currentUser.subDivisi, fileContoh: file ? file.name : '-',
+    divisi: currentUser.divisi, subDivisi: currentUser.subDivisi, 
+    pemohon: currentUser.nama, 
+    fileContoh: file ? file.name : '-',
     fileNota: notaFile ? notaFile.name : '-', ket: document.getElementById('req-ket').value,
+    fileContohUrl: fileContohUrl, fileNotaUrl: fileNotaUrl, 
     tanggal: firebase.database.ServerValue.TIMESTAMP, status: 'Menunggu Diproses'
   };
 
   try {
-    await rtdb.ref('submissions/' + newReqId).set(requestData); e.target.reset(); toggleUploadType(); 
+    await rtdb.ref('submissions/' + newReqId).set(requestData); 
+    e.target.reset(); 
+    toggleUploadType(); 
     showCustomToast("Pengajuan Request Baru Berhasil Dibuat.", "success");
+    
     submitBtn.innerHTML = '<i class="fa-solid fa-check-circle mr-2"></i>Berhasil Diajukan!';
     submitBtn.className = "w-full bg-green-600 text-white font-bold px-8 py-3 rounded-xl shadow-md transition md:w-auto md:col-span-2";
-    setTimeout(() => { submitBtn.innerHTML = originalHtml; submitBtn.className = originalClass; submitBtn.disabled = false; }, 2500);
-  } catch (error) { showCustomToast("Error: " + error.message, "error"); submitBtn.innerHTML = originalHtml; submitBtn.disabled = false; }
+    setTimeout(() => { 
+      submitBtn.innerHTML = originalHtml; 
+      submitBtn.className = originalClass; 
+      submitBtn.disabled = false; 
+    }, 2500);
+  } catch (error) { 
+    showCustomToast("Error: " + error.message, "error"); 
+    submitBtn.innerHTML = originalHtml; 
+    submitBtn.disabled = false; 
+  }
 }
 
 function renderRequestTable(){
   const body = document.getElementById('request-table-body'); if (!currentUser) return;
   const isAdmin = currentUser.role === 'admin'; let displayedSubmissions = submissions;
   if(!isAdmin) displayedSubmissions = submissions.filter(s => s.divisi === currentUser.divisi && s.subDivisi === currentUser.subDivisi);
-  if(displayedSubmissions.length===0){ body.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-gray-400">Belum ada pengajuan.</td></tr>`; return; }
+  
+  // Colspan diubah menjadi 9 karena ada penambahan 1 kolom
+  if(displayedSubmissions.length===0){ body.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-gray-400">Belum ada pengajuan.</td></tr>`; return; }
   
   body.innerHTML = displayedSubmissions.map(s => {
     let statusHtml = '';
@@ -1900,6 +2023,7 @@ function renderRequestTable(){
       <select onchange="updateSubmissionStatus('${s.id}', this.value)" class="w-full min-w-[170px] pr-8 border border-gray-200 rounded-md px-2 py-1.5 text-xs font-semibold focus:outline-none focus:border-tiket-blue cursor-pointer">
         <option value="Menunggu Diproses" ${s.status === 'Menunggu Diproses' ? 'selected' : ''}>Menunggu Diproses</option>
         <option value="Diajukan ke Perencanaan" ${s.status === 'Diajukan ke Perencanaan' ? 'selected' : ''}>Diajukan ke Perencanaan</option>
+        <option value="Diterima dengan catatan" ${s.status === 'Diterima dengan catatan' ? 'selected' : ''}>Diterima dengan catatan</option>
         <option value="Diajukan ke Pengadaan" ${s.status === 'Diajukan ke Pengadaan' ? 'selected' : ''}>Diajukan ke Pengadaan</option>
         <option value="Barang sudah on site" ${s.status === 'Barang sudah on site' ? 'selected' : ''}>Barang sudah on site</option>
         <option value="Pengajuan ditolak" ${s.status === 'Pengajuan ditolak' ? 'selected' : ''}>Pengajuan ditolak</option>
@@ -1909,13 +2033,14 @@ function renderRequestTable(){
       if (s.status === 'Menunggu Diproses') colorClass = 'bg-amber-100 text-amber-700 hover:bg-amber-200';
       else if (s.status === 'Barang sudah on site') colorClass = 'bg-green-100 text-green-700 hover:bg-green-200';
       else if (s.status === 'Pengajuan ditolak') colorClass = 'bg-rose-100 text-rose-700 hover:bg-rose-200';
+      else if (s.status === 'Diterima dengan catatan') colorClass = 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200';
       else colorClass = 'bg-blue-100 text-blue-700 hover:bg-blue-200'; 
       statusHtml = `<button onclick="showProgressTracker('${s.id}')" class="badge ${colorClass} transition cursor-pointer flex items-center gap-1 shadow-sm" title="Klik untuk lacak progres">${s.status} <i class="fa-solid fa-chevron-right text-[10px] ml-1"></i></button>`;
     }
 
     const ketHtml = `<span class="text-xs text-gray-500 block" title="${s.ket || '-'}">${s.ket || '-'}</span>`;
-    const btnContoh = s.fileContoh !== '-' ? `<button onclick="window.open('${s.fileContohUrl}', '_blank')" class="text-xs bg-purple-50 text-purple-600 p-2 rounded-lg hover:bg-purple-100 border border-purple-100 transition" title="Lihat Contoh (${s.fileContoh})"><i class="fa-solid fa-image"></i></button>` : '';
-    const btnNota = s.fileNota !== '-' ? `<button onclick="window.open('${s.fileNotaUrl}', '_blank')" class="text-xs bg-rose-50 text-rose-600 p-2 rounded-lg hover:bg-rose-100 border border-rose-100 transition" title="Lihat Nota (${s.fileNota})"><i class="fa-solid fa-file-pdf"></i></button>` : '';
+    const btnContoh = (s.fileContoh !== '-' && s.fileContohUrl) ? `<button onclick="window.open('${s.fileContohUrl}', '_blank')" class="text-xs bg-purple-50 text-purple-600 p-2 rounded-lg hover:bg-purple-100 border border-purple-100 transition" title="Lihat Contoh (${s.fileContoh})"><i class="fa-solid fa-image"></i></button>` : '';
+    const btnNota = (s.fileNota !== '-' && s.fileNotaUrl) ? `<button onclick="window.open('${s.fileNotaUrl}', '_blank')" class="text-xs bg-rose-50 text-rose-600 p-2 rounded-lg hover:bg-rose-100 border border-rose-100 transition" title="Lihat Nota (${s.fileNota})"><i class="fa-solid fa-file-pdf"></i></button>` : '';
     const lampiranHtml = `<div class="flex gap-2">${btnContoh}${btnNota}</div>${!btnContoh && !btnNota ? '<span class="text-gray-400">-</span>' : ''}`;
 
     return `
@@ -1923,6 +2048,7 @@ function renderRequestTable(){
       <td class="p-4 whitespace-nowrap">${fmtDate(s.tanggal)}</td>
       <td class="p-4 whitespace-nowrap text-xs font-bold text-gray-400">${s.jenis}</td>
       <td class="p-4 text-gray-800 font-bold min-w-[150px]" title="${s.nama}">${s.nama}</td>
+      <td class="p-4 text-gray-600 font-semibold">${s.pemohon || '-'}</td>
       <td class="p-4 whitespace-nowrap">${s.jumlah} <span class="text-xs text-gray-400">${s.satuan}/bln</span></td>
       <td class="p-4">${formatDivisi(s.divisi, s.subDivisi)}</td>
       <td class="p-4">${statusHtml}</td>
@@ -1932,63 +2058,126 @@ function renderRequestTable(){
   }).join('');
 }
 
-let pendingRejectId = null;
+let pendingNoteId = null;
+let pendingNoteStatus = null;
+
 async function updateSubmissionStatus(id, newStatus) {
-  if (newStatus === 'Pengajuan ditolak') {
-    pendingRejectId = id; document.getElementById('reject-reason-input').value = ''; document.getElementById('reject-modal').classList.remove('hidden');
+  if (newStatus === 'Pengajuan ditolak' || newStatus === 'Diterima dengan catatan') {
+    pendingNoteId = id;
+    pendingNoteStatus = newStatus;
+    document.getElementById('reject-reason-input').value = '';
+
+    const isReject = newStatus === 'Pengajuan ditolak';
+    const modalTitle = document.getElementById('reject-modal-title');
+    modalTitle.className = `font-bold text-lg mb-2 font-display flex items-center ${isReject ? 'text-rose-600' : 'text-amber-500'}`;
+    modalTitle.innerHTML = `<i class="fa-solid ${isReject ? 'fa-triangle-exclamation' : 'fa-clipboard-list'} mr-2"></i> ${isReject ? 'Alasan Penolakan' : 'Catatan Penerimaan'}`;
+
+    const btnConfirm = document.getElementById('reject-btn-confirm');
+    btnConfirm.innerText = isReject ? 'Tolak Pengajuan' : 'Simpan Catatan';
+    btnConfirm.className = isReject 
+      ? 'bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-md transition' 
+      : 'bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-5 rounded-xl shadow-md transition';
+
+    document.getElementById('reject-modal').classList.remove('hidden');
   } else {
-    try { await rtdb.ref('submissions/' + id).update({ status: newStatus }); showCustomToast(`Status diperbarui menjadi: ${newStatus}`, 'success'); } 
+    try { 
+      await rtdb.ref('submissions/' + id).update({ status: newStatus }); 
+      showCustomToast(`Status diperbarui menjadi: ${newStatus}`, 'success'); 
+    } 
     catch (error) { showCustomToast(`Gagal update status: ` + error.message, 'error'); }
   }
 }
-function cancelRejection() { document.getElementById('reject-modal').classList.add('hidden'); pendingRejectId = null; }
+
+function cancelRejection() { 
+  document.getElementById('reject-modal').classList.add('hidden'); 
+  pendingNoteId = null; pendingNoteStatus = null; 
+}
+
 async function confirmRejection() {
-  if (!pendingRejectId) return;
+  if (!pendingNoteId || !pendingNoteStatus) return;
   const reason = document.getElementById('reject-reason-input').value.trim();
   try {
-    await rtdb.ref('submissions/' + pendingRejectId).update({ status: 'Pengajuan ditolak', alasanTolak: reason || "Maaf, pengajuan ini telah ditinjau dan tidak dapat diproses lebih lanjut." });
-    showCustomToast('Pengajuan berhasil ditolak.', 'success');
-  } catch(error) { showCustomToast('Gagal menolak pengajuan: ' + error.message, 'error'); }
-  document.getElementById('reject-modal').classList.add('hidden'); pendingRejectId = null;
+    await rtdb.ref('submissions/' + pendingNoteId).update({ 
+      status: pendingNoteStatus, 
+      catatanAdmin: reason || (pendingNoteStatus === 'Pengajuan ditolak' ? "Maaf, pengajuan tidak dapat diproses." : "Diterima dengan penyesuaian/catatan dari admin.") 
+    });
+    showCustomToast('Pengajuan berhasil diupdate.', 'success');
+  } catch(error) { showCustomToast('Gagal memproses: ' + error.message, 'error'); }
+  document.getElementById('reject-modal').classList.add('hidden'); 
+  pendingNoteId = null; pendingNoteStatus = null;
 }
 
 function showProgressTracker(id) {
   const s = submissions.find(x => x.id === id); if(!s) return;
   document.getElementById('progress-subtitle').textContent = `Request: ${s.nama} (${s.jenis})`;
-  const container = document.getElementById('progress-container'); const bannerRejected = document.getElementById('progress-rejected-banner');
-  if (s.status === 'Pengajuan ditolak') {
-    bannerRejected.classList.remove('hidden'); const reasonParagraph = bannerRejected.querySelector('p');
-    if (reasonParagraph) reasonParagraph.textContent = s.alasanTolak || "Maaf, pengajuan ini telah ditinjau dan tidak dapat diproses lebih lanjut.";
-    container.innerHTML = ''; document.getElementById('progress-modal').classList.remove('hidden'); return;
-  }
+  const container = document.getElementById('progress-container'); 
+  
+  const bannerRejected = document.getElementById('progress-rejected-banner');
+  const bannerNotes = document.getElementById('progress-notes-banner');
   bannerRejected.classList.add('hidden');
+  bannerNotes.classList.add('hidden');
+
+  if (s.status === 'Pengajuan ditolak') {
+    bannerRejected.classList.remove('hidden'); 
+    const reasonParagraph = bannerRejected.querySelector('p');
+    if (reasonParagraph) reasonParagraph.textContent = s.catatanAdmin || s.alasanTolak || "Maaf, pengajuan ini telah ditinjau dan tidak dapat diproses.";
+  } else if (s.status === 'Diterima dengan catatan') {
+    bannerNotes.classList.remove('hidden');
+    const notesParagraph = document.getElementById('progress-notes-text');
+    if (notesParagraph) notesParagraph.textContent = s.catatanAdmin || "Diterima dengan penyesuaian/catatan dari admin.";
+  }
+
   const steps = [
     { id: 'Menunggu Diproses', label: 'Barang Masuk ke GA', icon: 'fa-box-open' },
     { id: 'Diajukan ke Perencanaan', label: 'Masuk ke Perencanaan', icon: 'fa-clipboard-list' },
     { id: 'Diajukan ke Pengadaan', label: 'Masuk ke Pengadaan', icon: 'fa-cart-shopping' },
     { id: 'Barang sudah on site', label: 'Ready di Gudang ATK', icon: 'fa-check-circle' }
   ];
-  let currentStepIndex = steps.findIndex(step => step.id === s.status); if (currentStepIndex === -1) currentStepIndex = 0; 
+  
+  let currentStepIndex = 0;
+  if (s.status === 'Menunggu Diproses') currentStepIndex = 0;
+  else if (['Diajukan ke Perencanaan', 'Pengajuan ditolak', 'Diterima dengan catatan'].includes(s.status)) currentStepIndex = 1;
+  else if (s.status === 'Diajukan ke Pengadaan') currentStepIndex = 2;
+  else if (s.status === 'Barang sudah on site') currentStepIndex = 3;
+
   let trackerHtml = '';
   steps.forEach((step, index) => {
-    let stateClass = ''; if (index < currentStepIndex) stateClass = 'completed'; else if (index === currentStepIndex) stateClass = 'active';
+    let stateClass = ''; 
+    if (index < currentStepIndex) stateClass = 'completed'; 
+    else if (index === currentStepIndex) {
+      if (s.status === 'Pengajuan ditolak') stateClass = 'rejected';
+      else if (s.status === 'Diterima dengan catatan') stateClass = 'warning';
+      else stateClass = 'active';
+    }
     trackerHtml += `
-      <div class="step-item ${stateClass}"><div class="step-icon"><i class="fa-solid ${step.icon}"></i></div><p class="text-[11px] font-bold mt-3 text-gray-600 leading-tight px-2">${step.label}</p><div class="step-line"></div></div>`;
+      <div class="step-item ${stateClass}">
+        <div class="step-icon"><i class="fa-solid ${step.icon}"></i></div>
+        <p class="text-[11px] font-bold mt-3 text-gray-600 leading-tight px-2">${step.label}</p>
+        <div class="step-line"></div>
+      </div>`;
   });
+  
   container.innerHTML = trackerHtml; document.getElementById('progress-modal').classList.remove('hidden');
 }
 
-function compressImage(file, callback) {
+function compressImage(file, callback, maxSize = 500, quality = 0.7) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement('canvas'); const MAX_SIZE = 500; 
+      const canvas = document.createElement('canvas'); 
       let width = img.width; let height = img.height;
-      if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
-      else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
-      canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
-      callback(canvas.toDataURL('image/jpeg', 0.7));
+      // Gunakan maxSize dinamis dari parameter
+      if (width > height) { 
+        if (width > maxSize) { height *= maxSize / width; width = maxSize; } 
+      } else { 
+        if (height > maxSize) { width *= maxSize / height; height = maxSize; } 
+      }
+      canvas.width = width; canvas.height = height; 
+      const ctx = canvas.getContext('2d'); 
+      ctx.drawImage(img, 0, 0, width, height);
+      // Gunakan quality dinamis dari parameter
+      callback(canvas.toDataURL('image/jpeg', quality));
     }; img.src = e.target.result;
   }; reader.readAsDataURL(file);
 }
@@ -2017,10 +2206,23 @@ async function submitRestock(e){
 let newPhotoData=null;
 function previewNewPhoto(e) {
   const file = e.target.files[0]; if (!file) return;
-  if (file.size > 102400) { compressImage(file, (data) => { newPhotoData = data; document.getElementById('new-photo-preview').innerHTML = `<img src="${data}" class="w-full h-full object-cover">`; }); } 
-  else { const r = new FileReader(); r.onload = ev => { newPhotoData = ev.target.result; document.getElementById('new-photo-preview').innerHTML = `<img src="${ev.target.result}" class="w-full h-full object-cover">`; }; r.readAsDataURL(file); }
+  // Jika lebih dari 100KB, kompres ke 500px
+  if (file.size > 102400) { 
+      compressImage(file, (data) => { newPhotoData = data; document.getElementById('new-photo-preview').innerHTML = `<img src="${data}" class="w-full h-full object-cover">`; }); 
+  } else { 
+      const r = new FileReader(); r.onload = ev => { newPhotoData = ev.target.result; document.getElementById('new-photo-preview').innerHTML = `<img src="${ev.target.result}" class="w-full h-full object-cover">`; }; r.readAsDataURL(file); 
+  }
 }
 
+function previewEditPhoto(e) {
+  const file = e.target.files[0]; if (!file) return;
+  // Jika lebih dari 100KB, kompres ke 500px
+  if (file.size > 102400) { 
+      compressImage(file, (data) => { editPhotoData = data; document.getElementById('edit-photo-preview').innerHTML = `<img src="${data}" class="w-full h-full object-cover">`; }); 
+  } else { 
+      const reader = new FileReader(); reader.onload = ev => { editPhotoData = ev.target.result; document.getElementById('edit-photo-preview').innerHTML = `<img src="${ev.target.result}" class="w-full h-full object-cover">`; }; reader.readAsDataURL(file); 
+  }
+}
 async function submitNewProduct(e){
   e.preventDefault();
   const submitBtn = e.target.querySelector('button'); const originalText = submitBtn.innerHTML;
@@ -2319,14 +2521,14 @@ function renderReports(){
   document.getElementById('report-kosong').innerHTML = kosong.length ? kosong.map(p=>`<div class="flex justify-between border-b border-gray-50 pb-2"><span>${p.name}</span><span class="font-bold text-rose-600">Habis</span></div>`).join('') : `<p class="text-gray-400">Tidak ada barang kosong.</p>`;
   document.getElementById('report-baru').innerHTML = baru.length ? baru.map(s=>`<div class="flex justify-between border-b border-gray-50 pb-2"><span>${s.nama}</span><span class="font-bold">${s.jumlah} ${s.satuan}/bln</span></div>`).join('') : `<p class="text-gray-400">Belum ada request barang baru.</p>`;
   document.getElementById('report-pengajuan').innerHTML = submissions.length ? submissions.slice(0,6).map(s=>{
-        let statColor = 'text-amber-600'; if(s.status.includes('Perencanaan') || s.status.includes('Pengadaan')) statColor = 'text-blue-600'; if(s.status === 'Barang sudah on site') statColor = 'text-green-600'; if(s.status === 'Pengajuan ditolak') statColor = 'text-rose-600';
+        let statColor = 'text-amber-600'; if(s.status.includes('Perencanaan') || s.status.includes('Pengadaan')) statColor = 'text-blue-600'; if(s.status === 'Barang sudah on site') statColor = 'text-green-600'; if(s.status === 'Pengajuan ditolak') statColor = 'text-rose-600'; if(s.status === 'Diterima dengan catatan') statColor = 'text-yellow-600';
         return `<div class="flex justify-between border-b border-gray-50 pb-2"><span>${s.nama}</span><span class="${statColor} font-bold text-xs">${s.status}</span></div>`;
       }).join('') : `<p class="text-gray-400">Belum ada pengajuan.</p>`;
 }
 
 function generateKAK(){
   const menipis = products.filter(p=>statusOf(p)==='menipis'); const kosong = products.filter(p=>statusOf(p)==='kosong'); const baru = submissions.filter(s=>s.jenis==='Barang Baru' && s.status !== 'Pengajuan ditolak');
-  const html = `<html><head><meta charset="utf-8"><title>KAK Pengadaan ATK</title><style>body{font-family:Calibri,Arial,sans-serif;font-size:13px;line-height:1.6;color:#1f2937;padding:30px;}h1{font-size:20px;} h2{font-size:15px;margin-top:24px;border-bottom:1px solid #ccc;padding-bottom:4px;}table{width:100%;border-collapse:collapse;margin-top:8px;} td,th{border:1px solid #ccc;padding:6px 8px;font-size:12px;text-align:left;}</style></head><body><h1>KERANGKA ACUAN KERJA (KAK)<br>PENGADAAN ALAT TULIS KANTOR (ATK)</h1><p><b>Tanggal Diajukan:</b> ${fmtDate(new Date())}<br><b>Diajukan oleh:</b> Instalasi GA (General Affairs)</p><h2>1. Latar Belakang</h2><p>Berdasarkan hasil monitoring sistem gudangATK, terdapat sejumlah barang dengan status stok menipis dan stok kosong...</p><h2>2. Daftar Barang Stok Menipis</h2><table><tr><th>Nama Barang</th><th>Kategori</th><th>Sisa Stok</th><th>Satuan</th></tr>${menipis.map(p=>`<tr><td>${p.name}</td><td>${p.category}</td><td>${p.stock}</td><td>${p.unit}</td></tr>`).join('') || '<tr><td colspan="4">Tidak ada</td></tr>'}</table><h2>3. Daftar Barang Stok Kosong</h2><table><tr><th>Nama Barang</th><th>Kategori</th><th>Satuan</th></tr>${kosong.map(p=>`<tr><td>${p.name}</td><td>${p.category}</td><td>${p.unit}</td></tr>`).join('') || '<tr><td colspan="3">Tidak ada</td></tr>'}</table><h2>4. Daftar Request Barang Baru (Disetujui)</h2><table><tr><th>Nama</th><th>Kebutuhan/Bulan</th><th>Asal Unit & Divisi Pemohon</th></tr>${baru.map(s=>`<tr><td>${s.nama}</td><td>${s.jumlah} ${s.satuan}</td><td>${formatDivisiString(s.divisi, s.subDivisi)}</td></tr>`).join('') || '<tr><td colspan="3">Tidak ada</td></tr>'}</table></body></html>`;
+  const html = `<html><head><meta charset="utf-8"><title>KAK Pengadaan ATK</title><style>body{font-family:Calibri,Arial,sans-serif;font-size:13px;line-height:1.6;color:#1f2937;padding:30px;}h1{font-size:20px;} h2{font-size:15px;margin-top:24px;border-bottom:1px solid #ccc;padding-bottom:4px;}table{width:100%;border-collapse:collapse;margin-top:8px;} td,th{border:1px solid #ccc;padding:6px 8px;font-size:12px;text-align:left;}</style></head><body><h1>KERANGKA ACUAN KERJA (KAK)<br>PENGADAAN ALAT TULIS KANTOR (ATK)</h1><p><b>Tanggal Diajukan:</b> ${fmtDate(new Date())}<br><b>Diajukan oleh:</b> Instalasi GA (General Affairs)</p>2. Latar Belakang</h2><p>Berdasarkan hasil monitoring sistem gudangATK, terdapat sejumlah barang dengan status stok menipis dan stok kosong...</p><h2>2. Daftar Barang Stok Menipis</h2><table><tr><th>Nama Barang</th><th>Kategori</th><th>Sisa Stok</th><th>Satuan</th></tr>${menipis.map(p=>`<tr><td>${p.name}</td><td>${p.category}</td><td>${p.stock}</td><td>${p.unit}</td></tr>`).join('') || '<tr><td colspan="4">Tidak ada</td></tr>'}</table><h2>3. Daftar Barang Stok Kosong</h2><table><tr><th>Nama Barang</th><th>Kategori</th><th>Satuan</th></tr>${kosong.map(p=>`<tr><td>${p.name}</td><td>${p.category}</td><td>${p.unit}</td></tr>`).join('') || '<tr><td colspan="3">Tidak ada</td></tr>'}</table><h2>4. Daftar Request Barang Baru (Disetujui)</h2><table><tr><th>Nama</th><th>Kebutuhan/Bulan</th><th>Asal Unit & Divisi Pemohon</th></tr>${baru.map(s=>`<tr><td>${s.nama}</td><td>${s.jumlah} ${s.satuan}</td><td>${formatDivisiString(s.divisi, s.subDivisi)}</td></tr>`).join('') || '<tr><td colspan="3">Tidak ada</td></tr>'}</table></body></html>`;
   const blob = new Blob(['\ufeff', html], {type:'application/msword'}); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'KAK-Pengadaan-ATK.doc'; link.click();
 }
 
@@ -2353,7 +2555,6 @@ function renderKartuStok(){
     const namaPerson = t.pemohon ? t.pemohon : '-'; 
     let keterangan = t.keterangan || ((t.masuk || 0) > 0 ? 'Barang masuk / Restock' : 'Pengambilan sesuai');
     
-    // PENERJEMAH OTOMATIS TEKS LAMA KE REFUND
     if (keterangan.toLowerCase().includes('perubahan jumlah pesanan')) {
         keterangan = 'Refund';
     }
@@ -2363,7 +2564,6 @@ function renderKartuStok(){
     const ttdHtml = t.signature ? `<img src="${t.signature}" class="h-16 object-contain mix-blend-multiply" alt="TTD">` : `<span class="text-gray-300 italic">ttd</span>`;
     const { unit, subUnit } = getCleanDivisi(t); 
     
-    // Hiasan Khusus untuk Status Refund
     const ketHtml = keterangan === 'Refund' ? `<span class="badge bg-amber-100 text-amber-700 border border-amber-200">Refund</span>` : keterangan;
 
     return `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-4 font-medium text-gray-700">${noOrder}</td><td class="p-4">${fmtDate(t.date)}</td><td class="p-4 text-green-600 font-bold">${t.masuk||'-'}</td><td class="p-4 text-rose-600 font-bold">${t.keluar||'-'}</td><td class="p-4 text-gray-800 font-bold">${running}</td><td class="p-4 font-semibold text-gray-700">${namaPerson}</td><td class="p-4 text-gray-600">${unit}</td><td class="p-4 text-gray-600">${subUnit}</td><td class="p-4">${ttdHtml}</td><td class="p-4 text-gray-500 text-sm">${ketHtml}</td></tr>`;
@@ -2386,7 +2586,6 @@ function exportKartuExcel(){
     running += ((t.masuk||0) - (t.keluar||0)); 
     const { unit, subUnit } = getCleanDivisi(t); 
     
-    // PASTIKAN REFUND DITERJEMAHKAN DI EXCEL JUGA
     let ket = t.keterangan || ((t.masuk||0)>0?'Barang masuk':'Pengambilan');
     if(ket.toLowerCase().includes('perubahan jumlah pesanan')) ket = 'Refund';
 
@@ -2405,7 +2604,6 @@ function exportAllTransactions() {
     const p = products.find(x => String(x.id) === String(t.productId)); 
     const { unit, subUnit } = getCleanDivisi(t); 
     
-    // PASTIKAN REFUND DITERJEMAHKAN DI EXCEL
     let ket = t.keterangan || (t.masuk > 0 ? 'Restock' : 'Checkout');
     if(ket.toLowerCase().includes('perubahan jumlah pesanan')) ket = 'Refund';
 
