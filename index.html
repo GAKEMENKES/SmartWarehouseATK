@@ -2737,9 +2737,40 @@ async function processAdminOrder(action) {
         if (taken > 0) isFullyCancelled = false; updatedItems.push({...item, qty: taken}); 
         const diff = item.qty - taken; const p = products.find(x => String(x.id) === String(item.id));
         if (isHabis && p) {
-          const currentDBStock = p.stock || 0; const totalLost = currentDBStock + diff; 
-          multiUpdates['products/' + p.id + '/stock'] = 0;
-          if (totalLost > 0) { const transKey = rtdb.ref('transactions').push().key; multiUpdates['transactions/' + transKey] = { date: timestampNow, productId: item.id, divisi: 'GA', subDivisi: 'Umum', pemohon: 'Penyesuaian Sistem', masuk: 0, keluar: totalLost, keterangan: `Barang habis di lapangan, tidak jadi ambil` }; }
+            const currentDBStock = p.stock || 0; 
+            const totalLost = currentDBStock + diff; 
+            multiUpdates['products/' + p.id + '/stock'] = 0;
+            
+            // 1. Tambahkan pencatatan Refund terlebih dahulu jika ada barang yang batal diambil
+            if (diff > 0) {
+              const transKeyRefund = rtdb.ref('transactions').push().key;
+              multiUpdates['transactions/' + transKeyRefund] = { 
+                date: timestampNow, 
+                productId: item.id, 
+                divisi: order.divisi, 
+                subDivisi: order.subDivisi, 
+                pemohon: order.pemohon, 
+                masuk: diff, 
+                keluar: 0, 
+                keterangan: `Refund` 
+              };
+            }
+
+            // 2. Catat penyesuaian sistem (habis di lapangan) untuk mengosongkan sisa stok
+            if (totalLost > 0) { 
+              const transKey = rtdb.ref('transactions').push().key; 
+              multiUpdates['transactions/' + transKey] = { 
+                // Tambahkan +1 milidetik agar selalu tercatat di baris setelah transaksi Refund
+                date: timestampNow + 1, 
+                productId: item.id, 
+                divisi: 'GA', 
+                subDivisi: 'Umum', 
+                pemohon: 'Penyesuaian Sistem', 
+                masuk: 0, 
+                keluar: totalLost, 
+                keterangan: `Barang habis di lapangan, tidak jadi ambil` 
+              }; 
+            }
         } else if (diff > 0 && p) {
           multiUpdates['products/' + p.id + '/stock'] = (p.stock || 0) + diff; 
           const transKey = rtdb.ref('transactions').push().key; multiUpdates['transactions/' + transKey] = { date: timestampNow, productId: item.id, divisi: order.divisi, subDivisi: order.subDivisi, pemohon: order.pemohon, masuk: diff, keluar: 0, keterangan: `Refund` };
