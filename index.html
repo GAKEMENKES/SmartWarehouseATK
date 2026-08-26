@@ -493,15 +493,18 @@
           <p class="text-sm text-gray-500 mt-1">Filter barang, periode, dan divisi untuk melihat pola pemakaian secara instan.</p>
         </div>
         
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
           <button onclick="openSpecialGroupModal()" class="bg-amber-100 border border-amber-200 text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm hover:bg-amber-200 text-amber-800 flex items-center gap-2 transition">
             <i class="fa-solid fa-layer-group"></i> Kelola Group Jatah
           </button>
-          <button onclick="exportDashboardExcel()" class="bg-white border text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm hover:bg-gray-50 text-gray-700 flex items-center gap-2">
-            <i class="fa-solid fa-file-excel text-green-600"></i> Export Excel
+          <button onclick="exportSpecialUnitUtama()" class="bg-white border border-gray-200 text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm hover:bg-gray-50 text-gray-700 flex items-center gap-2 transition">
+            <i class="fa-solid fa-file-excel text-green-600"></i> Export Unit Utama
+          </button>
+          <button onclick="exportSpecialSubUnit()" class="bg-white border border-gray-200 text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm hover:bg-gray-50 text-gray-700 flex items-center gap-2 transition">
+            <i class="fa-solid fa-file-excel text-green-600"></i> Export Sub Unit
           </button>
         </div>
-      </div>
+ </div>
 
       <!-- GRAFIK BARANG PERHATIAN KHUSUS -->
       <div class="bg-white rounded-2xl shadow-sm border border-amber-100 p-6 mb-8">
@@ -622,20 +625,28 @@
       </div>
     </div>
   </div>
-
-  <div id="tab-report" class="tab-panel">
+<div id="tab-report" class="tab-panel">
     <div class="max-w-7xl mx-auto px-6 py-12">
-      <h2 class="text-2xl font-bold text-gray-800 mb-1 font-display"><i class="fa-solid fa-file-lines text-rose-600 mr-2"></i>Report &amp; Kartu Stok</h2>
-      <p class="text-sm text-gray-500 mb-8">Rekap siap pakai untuk memperkuat pengajuan ke pengadaan.</p>
+      <!-- Header dengan Tombol Export -->
+      <div class="flex flex-wrap justify-between items-end gap-4 mb-8">
+        <div>
+          <h2 class="text-2xl font-bold text-gray-800 mb-1 font-display"><i class="fa-solid fa-file-lines text-rose-600 mr-2"></i>Report &amp; Kartu Stok</h2>
+          <p class="text-sm text-gray-500">Rekap siap pakai untuk memperkuat pengajuan ke pengadaan.</p>
+        </div>
+        <button onclick="exportWarningStock()" class="bg-white border border-gray-200 text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm hover:bg-gray-50 text-gray-700 flex items-center gap-2 transition">
+          <i class="fa-solid fa-file-excel text-green-600"></i> Export Stok Menipis & Kosong
+        </button>
+      </div>
 
+      <!-- Grid Laporan (Diperbarui dengan Scrollbar) -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-amber-500"></span>Stok Menipis</h3>
-          <div id="report-menipis" class="space-y-2 text-sm"></div>
+          <div id="report-menipis" class="space-y-2 text-sm max-h-[300px] overflow-y-auto pr-2"></div>
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-gray-400"></span>Stok Kosong</h3>
-          <div id="report-kosong" class="space-y-2 text-sm"></div>
+          <div id="report-kosong" class="space-y-2 text-sm max-h-[300px] overflow-y-auto pr-2"></div>
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-purple-500"></span>Request Barang Baru</h3>
@@ -2276,11 +2287,15 @@ function populateSpecialUnitFilter() {
 }
 
 function getStatusData(actual, quota) {
-    if (actual >= quota) return '🔴 Jatah Habis / Melebihi';
-    if (actual >= (quota * 0.8)) return '🟡 Hampir Penuh';
+    // Pastikan kedua nilai dikonversi menjadi angka
+    const numActual = Number(actual);
+    const numQuota = Number(quota);
+
+    if (numActual >= numQuota) return '🔴 Jatah Habis / Melebihi';
+    if (numActual === 0) return '⚫ Belum Terutilisasi';
+    if (numActual >= (numQuota * 0.8)) return '🟡 Hampir Penuh';
     return '🟢 Utilisasi Sedikit';
 }
-
 function renderSpecialChart() {
     try {
         const groupId = document.getElementById('dash-special-group').value;
@@ -2510,15 +2525,188 @@ function renderDashboard(){
   body.innerHTML = sorted.map(t=>{ const p = products.find(x => String(x.id) === String(t.productId)); const { unit, subUnit } = getCleanDivisi(t); return `<tr><td class="p-4">${fmtDate(t.date)}</td><td class="p-4">${p?p.name:'-'}</td><td class="p-4">${formatDivisi(unit, subUnit)}</td><td class="p-4">${t.masuk||'-'}</td><td class="p-4">${t.keluar||'-'}</td></tr>`; }).join('') || `<tr><td colspan="5" class="p-6 text-center text-gray-400">Tidak ada data untuk filter ini.</td></tr>`;
   window._dashRows = rows;
 }
+
+function exportSpecialUnitUtama() {
+  const groupId = document.getElementById('dash-special-group').value;
+  const month = parseInt(document.getElementById('dash-special-month').value);
+  const year = parseInt(document.getElementById('dash-special-year').value);
+  const groupSelect = document.getElementById('dash-special-group');
+  const groupName = groupSelect.options[groupSelect.selectedIndex]?.text || 'Group_Jatah';
+
+  if (!groupId) {
+    showCustomToast('Silakan pilih Group Jatah terlebih dahulu.', 'error');
+    return;
+  }
+
+  const group = specialGroups.find(x => x.id === groupId);
+  if (!group || !group.quotas) {
+    showCustomToast('Data group tidak ditemukan atau belum ada jatah unit.', 'error');
+    return;
+  }
+
+  let totalJatah = 0;
+  let totalAktual = 0;
+  const dataToExport = [];
+
+  Object.keys(group.quotas).forEach(unit => {
+    const quota = group.quotas[unit] || 0;
+    const { total } = getGroupMonthUsage(group, unit, month, year);
+    
+    totalJatah += quota;
+    totalAktual += total;
+
+    dataToExport.push({
+      'Nama Unit Utama': unit,
+      'Jatah': quota,
+      'Utilisasi (Aktual)': total,
+      'Status': getStatusData(total, quota)
+    });
+  });
+
+  // Baris Total
+  dataToExport.push({
+    'Nama Unit Utama': 'TOTAL KESELURUHAN',
+    'Jatah': totalJatah,
+    'Utilisasi (Aktual)': totalAktual,
+    'Status': ''
+  });
+
+  const ws = XLSX.utils.json_to_sheet(dataToExport);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Unit Utama');
+  XLSX.writeFile(wb, `Laporan_${groupName.replace(/\s+/g, '_')}_UnitUtama.xlsx`);
+}
+
+function exportSpecialSubUnit() {
+  const groupId = document.getElementById('dash-special-group').value;
+  const month = parseInt(document.getElementById('dash-special-month').value);
+  const year = parseInt(document.getElementById('dash-special-year').value);
+  const groupSelect = document.getElementById('dash-special-group');
+  const groupName = groupSelect.options[groupSelect.selectedIndex]?.text || 'Group_Jatah';
+
+  if (!groupId) {
+    showCustomToast('Silakan pilih Group Jatah terlebih dahulu.', 'error');
+    return;
+  }
+
+  const group = specialGroups.find(x => x.id === groupId);
+  if (!group || !group.quotas) {
+    showCustomToast('Data group tidak ditemukan atau belum ada jatah unit.', 'error');
+    return;
+  }
+
+  let totalAktual = 0;
+  const dataToExport = [];
+
+  Object.keys(group.quotas).forEach(unit => {
+    const quota = group.quotas[unit] || 0;
+    const { total: totalUnit } = getGroupMonthUsage(group, unit, month, year);
+    const subUnitsData = getGroupMonthUsageBySubUnit(group, unit, month, year);
+    const subUnits = Object.keys(subUnitsData);
+
+    if (subUnits.length === 0) {
+      dataToExport.push({
+        'Nama Unit Utama': unit,
+        'Sub Unit': '-',
+        'Jatah (Unit Utama)': quota,
+        'Utilisasi (Aktual)': 0,
+        'Status Keseluruhan Unit': getStatusData(totalUnit, quota)
+      });
+    } else {
+      subUnits.forEach(su => {
+        const actual = subUnitsData[su].total;
+        totalAktual += actual;
+        
+        dataToExport.push({
+          'Nama Unit Utama': unit,
+          'Sub Unit': su !== '-' ? su : 'Tanpa Sub-Unit',
+          'Jatah (Unit Utama)': quota,
+          'Utilisasi (Aktual)': actual,
+          'Status Keseluruhan Unit': getStatusData(totalUnit, quota)
+        });
+      });
+    }
+  });
+
+  // Baris Total (Jatah tidak ditotal karena akan terjadi duplikasi baris pada perhitungan Sub-Unit)
+  dataToExport.push({
+    'Nama Unit Utama': 'TOTAL KESELURUHAN',
+    'Sub Unit': '',
+    'Jatah (Unit Utama)': '',
+    'Utilisasi (Aktual)': totalAktual,
+    'Status Keseluruhan Unit': ''
+  });
+
+  const ws = XLSX.utils.json_to_sheet(dataToExport);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Detail Sub Unit');
+  XLSX.writeFile(wb, `Laporan_${groupName.replace(/\s+/g, '_')}_SubUnit.xlsx`);
+}
+
 function exportDashboardExcel(){
   const rows = (window._dashRows||[]).map(t=>{ const p = products.find(x=> String(x.id) === String(t.productId)); const { unit, subUnit } = getCleanDivisi(t); return { Tanggal: fmtDate(t.date), Barang: p?p.name:'-', 'Unit & Divisi': formatDivisiString(unit, subUnit), Masuk: t.masuk||0, Keluar: t.keluar||0 }; });
   const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Analisa ATK'); XLSX.writeFile(wb, 'analisa-gudangATK.xlsx');
 }
 
+// Fungsi untuk menghitung rata-rata barang keluar per bulan
+function getAverageMonthlyUsage(productId) {
+  // Ambil semua transaksi keluar untuk produk ini
+  const itemTrans = transactions.filter(t => String(t.productId) === String(productId) && (t.keluar || 0) > 0);
+  
+  if (itemTrans.length === 0) return 0; // Jika belum pernah ada transaksi keluar
+
+  let totalKeluar = 0;
+  let earliestDate = new Date(); // Set ke waktu sekarang dulu
+
+  itemTrans.forEach(t => {
+    totalKeluar += (t.keluar || 0);
+    const tDate = new Date(t.date);
+    if (tDate < earliestDate) earliestDate = tDate; // Cari tanggal transaksi paling tua
+  });
+
+  const now = new Date();
+  // Hitung selisih bulan dari transaksi pertama hingga hari ini
+  let monthsDiff = (now.getFullYear() - earliestDate.getFullYear()) * 12 + (now.getMonth() - earliestDate.getMonth());
+  
+  // Tambah 1 agar bulan berjalan tetap dihitung sebagai 1 periode, mencegah pembagian dengan 0
+  monthsDiff = monthsDiff <= 0 ? 1 : monthsDiff + 1;
+
+  // Gunakan Math.ceil (pembulatan ke atas) agar estimasi restock lebih aman
+  return Math.ceil(totalKeluar / monthsDiff); 
+}
+
 function renderReports(){
-  const menipis = products.filter(p=>statusOf(p)==='menipis'); const kosong = products.filter(p=>statusOf(p)==='kosong'); const baru = submissions.filter(s=>s.jenis==='Barang Baru');
-  document.getElementById('report-menipis').innerHTML = menipis.length ? menipis.map(p=>`<div class="flex justify-between border-b border-gray-50 pb-2"><span>${p.name}</span><span class="font-bold text-amber-600">${p.stock} ${p.unit}</span></div>`).join('') : `<p class="text-gray-400">Tidak ada barang menipis.</p>`;
-  document.getElementById('report-kosong').innerHTML = kosong.length ? kosong.map(p=>`<div class="flex justify-between border-b border-gray-50 pb-2"><span>${p.name}</span><span class="font-bold text-rose-600">Habis</span></div>`).join('') : `<p class="text-gray-400">Tidak ada barang kosong.</p>`;
+  const menipis = products.filter(p=>statusOf(p)==='menipis'); 
+  const kosong = products.filter(p=>statusOf(p)==='kosong'); 
+  const baru = submissions.filter(s=>s.jenis==='Barang Baru');
+
+  // UPDATE: Tambahkan rata-rata pada daftar Stok Menipis
+  document.getElementById('report-menipis').innerHTML = menipis.length ? menipis.map(p=>{
+    const avg = getAverageMonthlyUsage(p.id);
+    return `
+      <div class="flex justify-between items-center border-b border-gray-50 pb-2">
+        <div>
+          <span class="block font-semibold text-gray-800">${p.name}</span>
+          <span class="text-[10px] text-gray-400 font-medium">Rata-rata keluar: ${avg} ${p.unit}/bln</span>
+        </div>
+        <span class="font-bold text-amber-600 shrink-0">${p.stock} ${p.unit}</span>
+      </div>`;
+  }).join('') : `<p class="text-gray-400">Tidak ada barang menipis.</p>`;
+
+  // UPDATE: Tambahkan rata-rata pada daftar Stok Kosong
+  document.getElementById('report-kosong').innerHTML = kosong.length ? kosong.map(p=>{
+    const avg = getAverageMonthlyUsage(p.id);
+    return `
+      <div class="flex justify-between items-center border-b border-gray-50 pb-2">
+        <div>
+          <span class="block font-semibold text-gray-800">${p.name}</span>
+          <span class="text-[10px] text-gray-400 font-medium">Rata-rata keluar: ${avg} ${p.unit}/bln</span>
+        </div>
+        <span class="font-bold text-rose-600 shrink-0">Habis</span>
+      </div>`;
+  }).join('') : `<p class="text-gray-400">Tidak ada barang kosong.</p>`;
+
+  // Bagian ini biarkan sama seperti sebelumnya
   document.getElementById('report-baru').innerHTML = baru.length ? baru.map(s=>`<div class="flex justify-between border-b border-gray-50 pb-2"><span>${s.nama}</span><span class="font-bold">${s.jumlah} ${s.satuan}/bln</span></div>`).join('') : `<p class="text-gray-400">Belum ada request barang baru.</p>`;
   document.getElementById('report-pengajuan').innerHTML = submissions.length ? submissions.slice(0,6).map(s=>{
         let statColor = 'text-amber-600'; if(s.status.includes('Perencanaan') || s.status.includes('Pengadaan')) statColor = 'text-blue-600'; if(s.status === 'Barang sudah on site') statColor = 'text-green-600'; if(s.status === 'Pengajuan ditolak') statColor = 'text-rose-600'; if(s.status === 'Diterima dengan catatan') statColor = 'text-yellow-600';
@@ -2617,6 +2805,38 @@ function exportIncomingItems() {
   const data = incoming.map(t => { const p = products.find(x => String(x.id) === String(t.productId)); return { 'Tanggal Masuk': fmtDate(t.date), 'Barang': p ? p.name : 'Unknown', 'Jumlah Masuk': t.masuk, 'Oleh / Keterangan': t.keterangan || '-' }; });
   const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Barang Masuk'); XLSX.writeFile(wb, `Laporan-Barang-Masuk.xlsx`);
 }
+
+function exportWarningStock() {
+  const menipis = products.filter(p => statusOf(p) === 'menipis');
+  const kosong = products.filter(p => statusOf(p) === 'kosong');
+  const warningData = [...menipis, ...kosong];
+
+  if (warningData.length === 0) {
+    showCustomToast('Tidak ada barang dengan status menipis atau kosong.', 'info');
+    return;
+  }
+
+  const dataToExport = warningData.map((p, index) => {
+    const avg = getAverageMonthlyUsage(p.id); // Panggil fungsi helper yang baru dibuat
+    
+    return {
+      'No': index + 1,
+      'Kode Barang (Kode Sakti)': p.kodeSakti || '-',
+      'Nama Barang': p.name,
+      'Stok Saat Ini': p.stock,
+      'Stock Minimum': p.minStock || 0,
+      'Rata-rata Keluar / Bulan': avg, // Data analisis baru
+      'Satuan': p.unit, // Tambahkan satuan agar jelas di excel
+      'Status': statusOf(p) === 'menipis' ? 'Stok Menipis' : 'Stok Kosong'
+    };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(dataToExport);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Warning Stok');
+  XLSX.writeFile(wb, 'Laporan-Warning-Stok.xlsx');
+}
+
 
 function initSelects(){
   fillSelect(document.getElementById('category-filter'), CATEGORIES, true, 'Semua Kategori'); fillSelect(document.getElementById('new-kategori'), CATEGORIES, false); fillSelect(document.getElementById('edit-kategori'), CATEGORIES, false);
