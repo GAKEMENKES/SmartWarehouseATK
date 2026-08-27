@@ -682,17 +682,20 @@
         <h3 class="text-xl font-bold text-gray-800 font-display">Kartu Stok (Per Barang)</h3>
         <div class="flex gap-3 items-center flex-wrap">
           <div class="relative min-w-[250px] md:min-w-[300px]">
-            <input type="text" id="search-stok-input" autocomplete="off" placeholder="Pilih atau ketik nama barang..." 
-                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-tiket-blue text-sm font-semibold pr-10 cursor-text bg-white shadow-sm"
-                   onclick="showStokDropdown()" onkeyup="filterStokDropdown()">
+            <!-- (Input Dropdown Pencarian Barang tetap sama) -->
+            <input type="text" id="search-stok-input" autocomplete="off" placeholder="Pilih atau ketik nama barang..." class="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-tiket-blue text-sm font-semibold pr-10 cursor-text bg-white shadow-sm" onclick="showStokDropdown()" onkeyup="filterStokDropdown()">
             <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
               <i class="fa-solid fa-chevron-down text-gray-400 text-xs"></i>
             </div>
             <ul id="stok-dropdown-list" class="hidden absolute z-50 w-full bg-white border border-gray-200 mt-1 rounded-xl shadow-lg max-h-60 overflow-y-auto text-sm"></ul>
             <input type="hidden" id="kartu-produk">
           </div>
-          <button onclick="exportKartuExcel()" class="bg-white border text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm hover:bg-gray-50 text-gray-700"><i class="fa-solid fa-file-excel text-green-600 mr-1"></i>Export Kartu Stock</button>
-          <button onclick="window.print()" class="bg-white border text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm hover:bg-gray-50 text-gray-700"><i class="fa-solid fa-print mr-1"></i>Print</button>
+          <button onclick="exportKartuExcel()" class="bg-white border text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm hover:bg-gray-50 text-gray-700"><i class="fa-solid fa-file-excel text-green-600 mr-1"></i>Export</button>
+          
+          <!-- TOMBOL BARU CETAK MASSAL -->
+          <button onclick="openMassPrintModal()" class="bg-amber-100 border border-amber-200 text-amber-800 hover:bg-amber-200 text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fa-solid fa-print"></i>Cetak Massal</button>
+          
+          <button onclick="window.print()" class="bg-white border text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm hover:bg-gray-50 text-gray-700"><i class="fa-solid fa-print mr-1"></i>Print 1</button>
         </div>
       </div>
       <div id="kartu-stok-card" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"></div>
@@ -979,6 +982,72 @@
       <button onclick="processAdminOrder('cancel_all')" class="flex-1 bg-white border-2 border-rose-100 hover:bg-rose-50 text-rose-600 font-bold py-3 rounded-xl transition">Batalkan Semua</button>
       <button onclick="processAdminOrder('confirm_partial')" class="flex-1 bg-tiket-blue hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-md transition">Simpan & Selesai</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL CETAK MASSAL -->
+<div id="mass-print-modal" class="hidden fixed inset-0 z-[120] modal-backdrop flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col fade-in overflow-hidden">
+    
+    <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
+      <div>
+        <h3 class="font-bold text-lg font-display text-gray-800"><i class="fa-solid fa-print text-amber-500 mr-2"></i>Cetak Kartu Stok Massal</h3>
+        <p class="text-xs text-gray-500 mt-0.5">Cari dan pilih beberapa barang sekaligus untuk dicetak.</p>
+      </div>
+      <button onclick="closeModal('mass-print-modal')" class="text-gray-400 hover:text-gray-700"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    
+    <!-- PERBAIKAN: Penambahan Kolom Search dan Penyesuaian Layout -->
+    <div class="p-5 bg-white shrink-0 border-b border-gray-100 flex flex-col gap-4">
+      <div class="flex flex-col sm:flex-row justify-between items-end gap-3">
+        
+        <!-- Search Bar -->
+        <div class="w-full sm:flex-1">
+          <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wide block mb-1">Cari Nama Barang</label>
+          <div class="relative">
+            <input type="text" id="mass-print-search" oninput="renderMassPrintList()" placeholder="Ketik untuk mencari..." class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:border-amber-500 pr-8 shadow-sm">
+            <i class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-gray-400 text-xs"></i>
+          </div>
+        </div>
+
+        <!-- Filter Status -->
+        <div class="w-full sm:w-48">
+          <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wide block mb-1">Filter Status</label>
+          <select id="mass-print-filter" onchange="renderMassPrintList()" class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:border-amber-500 cursor-pointer shadow-sm">
+            <option value="semua">Semua Barang</option>
+            <option value="menipis">Stok Menipis</option>
+            <option value="kosong">Stok Kosong</option>
+          </select>
+        </div>
+        
+        <!-- Tombol Pilih Semua -->
+        <div class="w-full sm:w-auto pt-1 sm:pt-0">
+          <label class="flex items-center justify-center gap-2 cursor-pointer bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl hover:bg-amber-100 transition shadow-sm h-[38px]">
+            <input type="checkbox" id="mass-print-select-all" onchange="toggleSelectAllMassPrint(this)" class="w-4 h-4 text-amber-500 rounded focus:ring-amber-500 cursor-pointer">
+            <span class="text-xs font-bold text-amber-800 whitespace-nowrap">Pilih Semua</span>
+          </label>
+        </div>
+
+      </div>
+    </div>
+    
+    <div class="p-5 overflow-y-auto flex-1 bg-gray-50/50">
+      <div id="mass-print-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <!-- List barang akan di-render di sini oleh JavaScript -->
+      </div>
+    </div>
+    
+    <div class="p-5 border-t border-gray-100 bg-white shrink-0 flex gap-3 justify-end">
+      <button onclick="closeModal('mass-print-modal')" class="bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-2.5 px-6 rounded-xl transition">Batal</button>
+
+<button onclick="executeMassPrint(this, true)" class="bg-white border-2 border-amber-500 text-amber-600 hover:bg-amber-50 font-bold py-2.5 px-5 rounded-xl shadow-sm transition flex items-center gap-2">
+        <i class="fa-solid fa-file-lines"></i> Print Lite Mode
+      </button>
+
+      <button onclick="executeMassPrint(this)" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition flex items-center gap-2"><i class="fa-solid fa-print"></i> Cetak Terpilih</button>
+
+    </div>
+    
   </div>
 </div>
 
@@ -1308,6 +1377,8 @@ let orders = [];
 let submissions = []; 
 let transactions = []; 
 let specialGroups = []; 
+
+let massPrintSelected = new Set();
 
 function updateAllTransactions() {
   if(document.getElementById('tab-dashboard').classList.contains('active')) { renderDashboard(); renderSpecialChart(); }
@@ -2749,12 +2820,17 @@ function renderKartuStok(){
 
     let noOrder = '-'; const matchOrder = keterangan.match(/(ORD\d+)/i);
     if (matchOrder) noOrder = matchOrder[1]; else if (t.orderId) noOrder = t.orderId;
-    const ttdHtml = t.signature ? `<img src="${t.signature}" class="h-16 object-contain mix-blend-multiply" alt="TTD">` : `<span class="text-gray-300 italic">ttd</span>`;
+   // PERBAIKAN TTD: Paksa gambar menjadi besar (250px) lalu potong tengahnya
+    const ttdHtml = t.signature 
+      ? `<div style="position: relative; width: 70px; height: 55px; margin: 0 auto;">
+           <img src="${t.signature}" style="position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%) scale(2.2); width: 120px; max-width: none; mix-blend-mode: multiply; z-index: 10; pointer-events: none;" alt="TTD">
+         </div>` 
+      : `<span class="text-gray-300 italic text-center block">ttd</span>`;
     const { unit, subUnit } = getCleanDivisi(t); 
     
     const ketHtml = keterangan === 'Refund' ? `<span class="badge bg-amber-100 text-amber-700 border border-amber-200">Refund</span>` : keterangan;
 
-    return `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-4 font-medium text-gray-700">${noOrder}</td><td class="p-4">${fmtDate(t.date)}</td><td class="p-4 text-green-600 font-bold">${t.masuk||'-'}</td><td class="p-4 text-rose-600 font-bold">${t.keluar||'-'}</td><td class="p-4 text-gray-800 font-bold">${running}</td><td class="p-4 font-semibold text-gray-700">${namaPerson}</td><td class="p-4 text-gray-600">${unit}</td><td class="p-4 text-gray-600">${subUnit}</td><td class="p-4">${ttdHtml}</td><td class="p-4 text-gray-500 text-sm">${ketHtml}</td></tr>`;
+    return `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-4 font-medium text-gray-700">${noOrder}</td><td class="p-4">${fmtDate(t.date)}</td><td class="p-4 text-green-600 font-bold">${t.masuk||'-'}</td><td class="p-4 text-rose-600 font-  bold">${t.keluar||'-'}</td><td class="p-4 text-gray-800 font-bold">${running}</td><td class="p-4 font-semibold text-gray-700">${namaPerson}</td><td class="p-4 text-gray-600">${unit}</td><td class="p-4 text-gray-600">${subUnit}</td><td class="p-4">${ttdHtml}</td><td class="p-4 text-gray-500 text-sm">${ketHtml}</td></tr>`;
   });
   
   document.getElementById('kartu-stok-card').innerHTML = `
@@ -3014,6 +3090,214 @@ function refreshDropdowns() {
       initStokDropdown();
   }
 }
+
+/* ===================== CETAK KARTU STOK MASSAL ===================== */
+
+function openMassPrintModal() {
+  massPrintSelected.clear(); // Bersihkan ingatan pilihan saat modal baru dibuka
+  document.getElementById('mass-print-filter').value = 'semua';
+  document.getElementById('mass-print-search').value = ''; 
+  document.getElementById('mass-print-select-all').checked = false;
+  renderMassPrintList();
+  document.getElementById('mass-print-modal').classList.remove('hidden');
+}
+
+// Fungsi BARU: Menyimpan centang per item ke dalam memori
+function toggleSingleMassPrint(cb) {
+  if (cb.checked) {
+    massPrintSelected.add(String(cb.value));
+  } else {
+    massPrintSelected.delete(String(cb.value));
+  }
+}
+
+// PERBAIKAN: Memasukkan hasil "Pilih Semua" ke dalam memori
+function toggleSelectAllMassPrint(element) {
+  const isChecked = element.checked;
+  const checkboxes = document.querySelectorAll('.mass-print-checkbox');
+  
+  checkboxes.forEach(cb => {
+    cb.checked = isChecked;
+    // Blok ini yang wajib ada untuk menyimpan ke memori (Set)
+    if (isChecked) {
+      massPrintSelected.add(String(cb.value));
+    } else {
+      massPrintSelected.delete(String(cb.value));
+    }
+  });
+}
+// PERBAIKAN: Me-render ulang daftar namun tetap membaca dari memori (massPrintSelected)
+function renderMassPrintList() {
+  const filter = document.getElementById('mass-print-filter').value;
+  const searchQuery = (document.getElementById('mass-print-search').value || '').toLowerCase();
+  const container = document.getElementById('mass-print-list');
+  
+  let filteredProducts = products.filter(p => {
+    const stat = statusOf(p);
+    let matchStatus = true;
+    if (filter === 'menipis') matchStatus = (stat === 'menipis');
+    else if (filter === 'kosong') matchStatus = (stat === 'kosong');
+    
+    const matchSearch = p.name.toLowerCase().includes(searchQuery);
+    return matchStatus && matchSearch;
+  });
+  
+  filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
+  
+  if (filteredProducts.length === 0) {
+    container.innerHTML = `<div class="col-span-full text-center text-gray-400 py-10 text-sm"><i class="fa-solid fa-box-open text-3xl mb-3 text-gray-300 block"></i>Barang tidak ditemukan.</div>`;
+    return;
+  }
+  
+  container.innerHTML = filteredProducts.map(p => {
+    // Mengecek apakah ID barang ini ada di dalam ingatan (Set)
+    const isChecked = massPrintSelected.has(String(p.id)) ? 'checked' : '';
+    
+    return `
+    <label class="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer hover:border-amber-400 transition shadow-sm">
+      <!-- PASTIKAN BARIS DI BAWAH INI SAMA PERSIS: -->
+      <input type="checkbox" value="${p.id}" ${isChecked} onchange="toggleSingleMassPrint(this)" class="mass-print-checkbox mt-1 w-4 h-4 text-amber-500 rounded focus:ring-amber-500">
+      <div class="flex-1">
+        <p class="font-bold text-sm text-gray-800 leading-tight">${p.name}</p>
+        <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-wide">Stok: <span class="font-bold text-gray-600">${p.stock} ${p.unit}</span> | ${statusBadge(statusOf(p))}</p>
+      </div>
+    </label>
+    `;
+  }).join('');
+  
+  document.getElementById('mass-print-select-all').checked = false;
+}
+function toggleSelectAllMassPrint(element) {
+  const isChecked = element.checked;
+  const checkboxes = document.querySelectorAll('.mass-print-checkbox');
+  checkboxes.forEach(cb => cb.checked = isChecked);
+}
+
+// Variabel untuk menyimpan state HTML asli sebelum print massal
+let originalKartuStokHTML = '';
+
+// Tambahkan parameter isLiteMode dengan nilai default false
+function executeMassPrint(btnElement, isLiteMode = false) {
+  if (massPrintSelected.size === 0) {
+    showCustomToast('Pilih minimal 1 barang untuk dicetak!', 'error');
+    return;
+  }
+  
+  const originalText = btnElement.innerHTML;
+  btnElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mempersiapkan...`;
+  btnElement.disabled = true;
+  
+  setTimeout(() => {
+    const cardContainer = document.getElementById('kartu-stok-card');
+    originalKartuStokHTML = cardContainer.innerHTML; 
+    
+    let combinedHTML = '';
+    const selectedIds = Array.from(massPrintSelected);
+    
+    selectedIds.forEach((id, index) => {
+      const p = products.find(x => String(x.id) === String(id));
+      if (!p) return;
+      
+      const rows = transactions.filter(t => String(t.productId) === String(p.id)).sort((a, b) => a.date - b.date);
+      let running = 0;
+      
+      const trs = rows.map(t => {
+        running += ((t.masuk || 0) - (t.keluar || 0));
+        const namaPerson = t.pemohon ? t.pemohon : '-'; 
+        let keterangan = t.keterangan || ((t.masuk || 0) > 0 ? 'Barang masuk / Restock' : 'Pengambilan sesuai');
+        if (keterangan.toLowerCase().includes('perubahan jumlah pesanan')) keterangan = 'Refund';
+        
+        const ttdHtml = t.signature 
+          ? `<div style="position: relative; width: 60px; height: 50px; margin: 0 auto;">
+               <img src="${t.signature}" style="position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%) scale(2.4); width: 100px; max-width: none; mix-blend-mode: multiply; z-index: 10;" alt="TTD">
+             </div>` 
+          : ``; 
+          
+        const { unit, subUnit } = getCleanDivisi(t); 
+        const ketHtml = keterangan === 'Refund' ? `<span style="border: 1px solid #FBBF24; padding: 2px 4px; border-radius: 4px; color: #B45309; font-size: 9px;">Refund</span>` : keterangan;
+
+        return `<tr style="border-bottom: 1px solid #e5e7eb;">
+          <td style="padding: 4px; white-space: nowrap;">${fmtDate(t.date)}</td>
+          <td style="padding: 4px; color: #15803d; font-weight: bold; text-align: center; white-space: nowrap;">${t.masuk || '-'}</td>
+          <td style="padding: 4px; color: #b91c1c; font-weight: bold; text-align: center; white-space: nowrap;">${t.keluar || '-'}</td>
+          <td style="padding: 4px; color: #1f2937; font-weight: bold; text-align: center; white-space: nowrap;">${running}</td>
+          <td style="padding: 4px; font-weight: 600; color: #374151;">${namaPerson}</td>
+          <td style="padding: 4px; color: #374151;">${unit}</td>
+          <td style="padding: 4px; color: #374151;">${subUnit}</td>
+          <td style="padding: 4px; text-align: center; vertical-align: middle;">${ttdHtml}</td>
+          <td style="padding: 4px; color: #374151; font-size: 9px;">${ketHtml}</td>
+        </tr>`;
+      });
+
+      // KUNCI LITE MODE: Hapus 'page-break-after' jika isLiteMode terpilih (true)
+      const pageBreak = (index < selectedIds.length - 1 && !isLiteMode) ? 'page-break-after: always;' : '';
+      
+      combinedHTML += `
+        <div style="width: 100%; margin-bottom: 40px; ${pageBreak}">
+          <div style="border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
+            <h3 style="font-size: 18px; font-weight: bold; margin: 0; color: #000;">${p.name}</h3>
+            <p style="font-size: 11px; margin: 4px 0 0 0; color: #555;">Kode: <b>${p.kodeSakti || '-'}</b> | Sisa saat ini: ${p.stock} ${p.unit}</p>
+          </div>
+          <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 10px; table-layout: auto;">
+            <thead>
+              <tr style="background-color: #FDB813; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                <th style="padding: 4px; border: 1px solid #ccc; white-space: nowrap;">Tanggal</th>
+                <th style="padding: 4px; border: 1px solid #ccc; white-space: nowrap; text-align: center;">Masuk</th>
+                <th style="padding: 4px; border: 1px solid #ccc; white-space: nowrap; text-align: center;">Keluar</th>
+                <th style="padding: 4px; border: 1px solid #ccc; white-space: nowrap; text-align: center;">Sisa</th>
+                <th style="padding: 4px; border: 1px solid #ccc;">Nama</th>
+                <th style="padding: 4px; border: 1px solid #ccc;">Unit</th>
+                <th style="padding: 4px; border: 1px solid #ccc;">Sub Unit</th>
+                <th style="padding: 4px; border: 1px solid #ccc; white-space: nowrap; text-align: center;">Paraf / TTD</th>
+                <th style="padding: 4px; border: 1px solid #ccc;">Keterangan</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${trs.length > 0 ? trs.join('') : '<tr><td colspan="9" style="padding: 10px; text-align: center; border: 1px solid #ccc;">Belum ada transaksi.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      `;
+    });
+    
+    const styleId = 'mass-print-a4-style';
+    let printStyle = document.getElementById(styleId);
+    if (!printStyle) {
+      printStyle = document.createElement('style');
+      printStyle.id = styleId;
+      printStyle.innerHTML = `
+        @media print {
+          @page { size: A4 landscape !important; margin: 10mm !important; }
+        }
+      `;
+      document.head.appendChild(printStyle);
+    }
+    
+    cardContainer.innerHTML = combinedHTML;
+    closeModal('mass-print-modal');
+    
+    setTimeout(() => {
+      window.print();
+      btnElement.innerHTML = originalText;
+      btnElement.disabled = false;
+    }, 300);
+    
+  }, 100);
+}
+
+// Mengembalikan tampilan Kartu Stok ke kondisi awal dan MENGHAPUS aturan Portrait
+window.addEventListener('afterprint', () => {
+  // Hapus suntikan CSS Portrait agar jika user menge-print 1 barang, kembali ke default Landscape
+  const printStyle = document.getElementById('mass-print-a4-style');
+  if (printStyle) printStyle.remove();
+
+  if (originalKartuStokHTML !== '') {
+    document.getElementById('kartu-stok-card').innerHTML = originalKartuStokHTML;
+    originalKartuStokHTML = ''; 
+    if (typeof renderKartuStok === 'function') renderKartuStok(); 
+  }
+});
+
 initSelects();
 </script>
 </body>
