@@ -759,6 +759,12 @@
           </select>
         </div>
       </div>
+
+      <div id="checkout-keterangan-container" class="hidden">
+        <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Keterangan Khusus (Admin - Opsional)</label>
+        <input type="text" id="checkout-keterangan" placeholder="Contoh: Untuk keperluan akreditasi / rapat..." class="w-full max-w-full box-border mt-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-700 appearance-none">
+      </div>
+
       <div>
         <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tanda Tangan Pemohon <span class="text-rose-600">*</span></label>
         <div class="border-2 border-dashed border-gray-300 rounded-xl mt-1 bg-gray-50 relative overflow-hidden">
@@ -1363,6 +1369,10 @@ function configureUI() {
   document.getElementById('admin-orders-section').classList.toggle('hidden', isUser);
   document.getElementById('admin-history-filters').classList.toggle('hidden', isUser);
   document.getElementById('user-request-section').classList.toggle('hidden', !isUser);
+  
+  const ketContainer = document.getElementById('checkout-keterangan-container');
+  if(ketContainer) ketContainer.classList.toggle('hidden', isUser);
+
   document.getElementById('table-instruction').textContent = isUser 
     ? "Klik status badge untuk melacak transparansi pengadaan." 
     : "Admin dapat meng-update status langsung melalui dropdown pada tabel.";
@@ -1882,6 +1892,9 @@ async function processFinalCheckout(btnElement){
   const nama = currentUser.nama; const divisi = currentUser.divisi; const subDivisi = currentUser.subDivisi;
   const tglAmbil = document.getElementById('checkout-tgl').value; const jamAmbil = document.getElementById('checkout-jam').value;
   const canvas = document.getElementById('sig-canvas'); let signatureData = canvas.toDataURL('image/png');
+  
+  const inputKet = document.getElementById('checkout-keterangan');
+  const ketTambahan = (currentUser.role === 'admin' && inputKet && inputKet.value.trim() !== '') ? inputKet.value.trim() : null;
 
   btnElement.disabled = true; btnElement.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Mengirim...`;
   const items = ids.map(id=>{ const p = products.find(x => x.id == id); return {id:p.id, name:p.name, qty:cart[id], unit:p.unit}; });
@@ -1895,19 +1908,22 @@ async function processFinalCheckout(btnElement){
   items.forEach(item => {
     const p = products.find(x => x.id == item.id);
     const newTransKey = rtdb.ref('transactions').push().key;
-    multiUpdates['transactions/' + newTransKey] = { date: timestampNow, productId: item.id, divisi: divisi, subDivisi: subDivisi, pemohon: nama, masuk: 0, keluar: item.qty, signature: signatureData };
+    multiUpdates['transactions/' + newTransKey] = { 
+      date: timestampNow, productId: item.id, divisi: divisi, subDivisi: subDivisi, pemohon: nama, masuk: 0, keluar: item.qty, signature: signatureData,
+      keterangan: ketTambahan || 'Pengambilan sesuai' 
+    };
     multiUpdates['products/' + item.id + '/stock'] = (p.stock || 0) - item.qty;
   });
   
   try {
     await rtdb.ref().update(multiUpdates); 
     cart = {}; document.getElementById('checkout-tgl').value = ''; document.getElementById('checkout-jam').value = ''; clearSignature();
+    if(inputKet) inputKet.value = '';
     renderCartBadge(); closeModal('checkout-confirm-modal'); closeModal('cart-modal');
     showInvoice(newOrderId); showCustomToast('Checkout berhasil dikirim ke Admin!', 'success');
   } catch (error) { showCustomToast('Gagal mengirim order: ' + error.message, 'error'); } 
   finally { btnElement.disabled = false; btnElement.innerHTML = `Lanjut Checkout`; }
 }
-
 function showInvoice(orderId){
   const order = orders.find(x => x.id === orderId);
   if(!order) return;
