@@ -1846,20 +1846,13 @@ function checkoutCart(event){
   if(!jamAmbil) { showCustomToast('Mohon pilih Jam Pengambilan!', 'error'); return; }
   if(!hasSignature) { showCustomToast('Mohon isi tanda tangan Anda!', 'error'); return; }
 
-  const divisi = currentUser.divisi; const subDivisi = currentUser.subDivisi;
-  const combinedDivisiString = formatDivisiString(divisi, subDivisi);
-  let warningQuotaMsg = '';
-
+  // --- TAMBAHKAN KODE VALIDASI STOK RE-CHECK DISINI ---
   for (let i = 0; i < ids.length; i++) {
     const p = products.find(x => x.id == ids[i]);
-    if (p.restrictedTo) {
-        let isAllowed = false;
-        if (Array.isArray(p.restrictedTo)) isAllowed = p.restrictedTo.includes(combinedDivisiString) || p.restrictedTo.includes(divisi);
-        else isAllowed = (p.restrictedTo === combinedDivisiString) || (p.restrictedTo === divisi);
-        if (!isAllowed) {
-            const allowedText = Array.isArray(p.restrictedTo) ? p.restrictedTo.join(' / ') : p.restrictedTo;
-            showCustomToast(`Akses Ditolak! Barang "${p.name}" khusus untuk unit: ${allowedText}.`, 'error'); return;
-        }
+    const requestedQty = cart[ids[i]];
+    if (requestedQty > p.stock) {
+      showCustomToast(`Maaf, stok aktual ${p.name} tidak mencukupi. Sisa saat ini: ${p.stock} ${p.unit}. Silakan kurangi jumlah di keranjang.`, 'error');
+      return; 
     }
   }
 
