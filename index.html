@@ -217,7 +217,7 @@
       <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl p-4 text-gray-800 flex flex-wrap md:flex-nowrap gap-4 items-center absolute left-0 right-0 -bottom-12">
         <div class="flex-1 min-w-[200px] text-left px-4 border-r border-gray-200">
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-magnifying-glass mr-1 text-tiket-blue"></i> Cari Produk</label>
-          <input id="search-input" type="text" oninput="renderKatalog()" placeholder="Kertas A4, Spidol, Pulpen..." class="w-full text-sm font-semibold focus:outline-none mt-1 text-gray-700">
+          <input id="search-input" type="text" oninput="renderKatalog()" onkeydown="if(event.key === 'Enter') document.getElementById('katalog-grid').scrollIntoView({behavior:'smooth', block:'start'})" placeholder="Kertas A4, Spidol, Pulpen..." class="w-full text-sm font-semibold focus:outline-none mt-1 text-gray-700">
         </div>
         <div class="flex-1 min-w-[180px] text-left px-4 border-r border-gray-200">
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-layer-group mr-1 text-tiket-blue"></i> Kategori</label>
@@ -1846,6 +1846,9 @@ function checkoutCart(event){
   if(!jamAmbil) { showCustomToast('Mohon pilih Jam Pengambilan!', 'error'); return; }
   if(!hasSignature) { showCustomToast('Mohon isi tanda tangan Anda!', 'error'); return; }
 
+const divisi = currentUser.divisi; 
+  let warningQuotaMsg = '';
+
   // --- TAMBAHKAN KODE VALIDASI STOK RE-CHECK DISINI ---
   for (let i = 0; i < ids.length; i++) {
     const p = products.find(x => x.id == ids[i]);
@@ -3176,11 +3179,6 @@ function renderMassPrintList() {
   
   document.getElementById('mass-print-select-all').checked = false;
 }
-function toggleSelectAllMassPrint(element) {
-  const isChecked = element.checked;
-  const checkboxes = document.querySelectorAll('.mass-print-checkbox');
-  checkboxes.forEach(cb => cb.checked = isChecked);
-}
 
 // Variabel untuk menyimpan state HTML asli sebelum print massal
 let originalKartuStokHTML = '';
@@ -3216,11 +3214,11 @@ function executeMassPrint(btnElement, isLiteMode = false) {
         let keterangan = t.keterangan || ((t.masuk || 0) > 0 ? 'Barang masuk / Restock' : 'Pengambilan sesuai');
         if (keterangan.toLowerCase().includes('perubahan jumlah pesanan')) keterangan = 'Refund';
         
-        const ttdHtml = t.signature 
-          ? `<div style="position: relative; width: 60px; height: 50px; margin: 0 auto;">
-               <img src="${t.signature}" style="position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%) scale(2.4); width: 100px; max-width: none; mix-blend-mode: multiply; z-index: 10;" alt="TTD">
-             </div>` 
-          : ``; 
+       const ttdHtml = t.signature 
+  ? `<div style="width: 70px; height: 50px; margin: 0 auto; overflow: hidden; text-align: center;">
+       <img src="${t.signature}" style="width: 140px; max-width: none; margin-left: -35px; margin-top: -20px; mix-blend-mode: multiply;" alt="TTD">
+     </div>` 
+  : ``; 
           
         const { unit, subUnit } = getCleanDivisi(t); 
         const ketHtml = keterangan === 'Refund' ? `<span style="border: 1px solid #FBBF24; padding: 2px 4px; border-radius: 4px; color: #B45309; font-size: 9px;">Refund</span>` : keterangan;
