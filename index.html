@@ -163,6 +163,14 @@
           <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Password Akses</label>
           <input type="password" id="reg-password" required placeholder="Minimal 6 karakter" minlength="6" class="w-full mt-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-tiket-blue">
         </div>
+<div>
+  <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tanda Tangan <span class="text-rose-600">*</span></label>
+  <div class="border-2 border-dashed border-gray-300 rounded-xl mt-1 bg-gray-50 relative overflow-hidden">
+    <canvas id="reg-sig-canvas" class="w-full h-24 cursor-crosshair touch-none"></canvas>
+    <button type="button" onclick="regSigPad && regSigPad.clear()" class="absolute top-2 right-2 text-[10px] bg-white border border-gray-200 shadow-sm hover:bg-gray-100 px-2.5 py-1.5 rounded-lg text-gray-600 font-bold transition">Hapus</button>
+  </div>
+  <p class="text-[10px] text-gray-400 mt-1">Tanda tangan ini akan dipakai otomatis di setiap order Anda.</p>
+</div>
         <div class="pt-2 space-y-3">
           <button type="submit" class="w-full bg-tiket-yellow hover:bg-yellow-500 text-gray-900 font-extrabold py-3.5 rounded-xl shadow-md transition">Daftar Akun Sekarang</button>
           <button type="button" onclick="toggleAuthBox('login')" class="w-full bg-white border-2 border-tiket-blue text-tiket-blue hover:bg-blue-50 font-extrabold py-3 rounded-xl shadow-sm transition">Sudah Punya Akun? Log In</button>
@@ -765,14 +773,30 @@
         <input type="text" id="checkout-keterangan" placeholder="Contoh: Untuk keperluan akreditasi / rapat..." class="w-full max-w-full box-border mt-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-700 appearance-none">
       </div>
 
-      <div>
-        <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tanda Tangan Pemohon <span class="text-rose-600">*</span></label>
-        <div class="border-2 border-dashed border-gray-300 rounded-xl mt-1 bg-gray-50 relative overflow-hidden">
-          <canvas id="sig-canvas" class="w-full h-24 cursor-crosshair touch-none"></canvas>
-          <button onclick="clearSignature()" class="absolute top-2 right-2 text-[10px] bg-white border border-gray-200 shadow-sm hover:bg-gray-100 px-2.5 py-1.5 rounded-lg text-gray-600 font-bold transition">Hapus</button>
-        </div>
-      </div>
+     <div>
+  <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tanda Tangan Pemohon</label>
+  <div class="border border-gray-200 rounded-xl mt-1 bg-gray-50 h-24 flex items-center justify-center">
+    <img id="cart-saved-signature" class="hidden max-h-20 object-contain" alt="TTD Tersimpan">
+    <span id="cart-no-signature" class="text-xs text-gray-400 italic">Belum ada tanda tangan tersimpan</span>
+  </div>
+  <p class="text-[10px] text-gray-400 mt-1">Otomatis memakai tanda tangan yang tersimpan di profil Anda.</p>
+</div>
       <button onclick="checkoutCart(event)" class="w-full bg-tiket-blue hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition mt-2"><i class="fa-solid fa-receipt mr-2"></i>Checkout</button>
+    </div>
+  </div>
+</div>
+
+<div id="signature-required-modal" class="hidden fixed inset-0 z-[90] modal-backdrop flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-7 fade-in">
+    <h3 class="font-bold text-lg font-display text-gray-800 mb-1"><i class="fa-solid fa-signature text-purple-600 mr-2"></i>Lengkapi Tanda Tangan</h3>
+    <p class="text-sm text-gray-500 mb-4">Anda belum memiliki tanda tangan tersimpan. Isi sekali saja, dan akan dipakai otomatis di semua order berikutnya.</p>
+    <div class="border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 relative overflow-hidden">
+      <canvas id="req-sig-canvas" class="w-full h-32 cursor-crosshair touch-none"></canvas>
+      <button type="button" onclick="reqSigPad && reqSigPad.clear()" class="absolute top-2 right-2 text-[10px] bg-white border border-gray-200 shadow-sm hover:bg-gray-100 px-2.5 py-1.5 rounded-lg text-gray-600 font-bold transition">Hapus</button>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="closeModal('signature-required-modal'); closeModal('cart-modal')" class="flex-1 bg-white border border-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-50 transition">Nanti</button>
+      <button onclick="saveMySignature(this)" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl shadow-md transition">Simpan Tanda Tangan</button>
     </div>
   </div>
 </div>
@@ -1222,6 +1246,7 @@ auth.onAuthStateChanged(async (user) => {
 function toggleAuthBox(type) {
   document.getElementById('login-box').classList.toggle('hidden', type !== 'login');
   document.getElementById('register-box').classList.toggle('hidden', type !== 'register');
+  if (type === 'register') setTimeout(() => { regSigPad = createSigPad('reg-sig-canvas'); }, 50);
 }
 
 function handleDropdownChange(deptId, subDeptId, containerId, autoSelectSub = '') {
@@ -1254,19 +1279,29 @@ async function handleRegister(e) {
   const divisi = document.getElementById('reg-divisi').value;
   const subDivisi = document.getElementById('reg-subdivisi').value;
   const password = document.getElementById('reg-password').value;
-  const btn = e.target.querySelector('button');
+
+  if (!regSigPad || regSigPad.isEmpty()) { showCustomToast('Tanda tangan wajib diisi!', 'error'); return; }
+
+  // PENTING: selector diganti, karena tombol "Hapus" ttd sekarang ada di dalam form
+  const btn = e.target.querySelector('button[type="submit"]');
   const originalText = btn.innerHTML;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Mendaftarkan...';
   btn.disabled = true;
 
   try {
+    // Upload ttd DULU sebelum membuat akun, supaya jeda antara createUser
+    // dan penulisan profil ke database tetap singkat (hindari race dengan onAuthStateChanged)
+    const signatureUrl = await uploadToCloudinary(regSigPad.toDataURL());
+
     const userCredential = await auth.createUserWithEmailAndPassword(email, password);
     const uid = userCredential.user.uid;
-    await rtdb.ref('users/' + uid).set({ nama, email, hp, divisi, subDivisi, role: 'user' });
+    await rtdb.ref('users/' + uid).set({ nama, email, hp, divisi, subDivisi, role: 'user', signature: signatureUrl });
+
     showCustomToast('Registrasi Berhasil! Silakan Log In.', 'success');
     e.target.reset();
+    regSigPad.clear();
     toggleAuthBox('login');
-  } catch (error) { showCustomToast('Registrasi Gagal: ' + error.message, 'error'); } 
+  } catch (error) { showCustomToast('Registrasi Gagal: ' + error.message, 'error'); }
   finally { btn.innerHTML = originalText; btn.disabled = false; }
 }
 
@@ -1285,6 +1320,13 @@ async function handleLogin(e) {
 }
 
 function startRealtimeListeners() {
+
+if (currentUser.role === 'admin') {
+  rtdb.ref('users').on('value', (snapshot) => {
+    rebuildUserIndex(snapshot);
+    updateAllTransactions();
+  });
+}
   rtdb.ref('products').on('value', (snapshot) => {
     products = [];
     if (snapshot.exists()) snapshot.forEach((child) => { products.push({ id: child.key, ...child.val() }); });
@@ -1389,6 +1431,26 @@ let transactions = [];
 let specialGroups = []; 
 
 let massPrintSelected = new Set();
+
+/* ===================== RESOLVER TTD (dari profil user) ===================== */
+let usersByUid = {}, usersByName = {};
+const normName = s => String(s || '').trim().toLowerCase();
+
+function rebuildUserIndex(snapshot) {
+  usersByUid = {}; usersByName = {};
+  snapshot.forEach(child => {
+    const u = { uid: child.key, ...child.val() };
+    usersByUid[u.uid] = u;
+    const k = normName(u.nama);
+    usersByName[k] = usersByName[k] ? null : u;   // null = nama kembar, tidak ditebak
+  });
+}
+
+function resolveSignature(t) {
+  if (!((t.keluar || 0) > 0)) return '';          // hanya baris pengambilan barang
+  const u = (t.uid && usersByUid[t.uid]) || usersByName[normName(t.pemohon)];
+  return (u && u.signature) || '';
+}
 
 function updateAllTransactions() {
   if(document.getElementById('tab-dashboard').classList.contains('active')) { renderDashboard(); renderSpecialChart(); }
@@ -1782,9 +1844,10 @@ function openCart(){
   renderCartItems(); document.getElementById('cart-modal').classList.remove('hidden');
   const todayIso = new Date().toLocaleDateString('en-CA');
   document.getElementById('checkout-tgl').min = todayIso;
-  validateTime(); setTimeout(initSignature, 100); 
+  validateTime();
+  renderSavedSignature();
+  if (!currentUser.signature) openSignatureRequiredModal();
 }
-
 function renderCartItems(){
   const wrap = document.getElementById('cart-items');
   const ids = Object.keys(cart).filter(id=>cart[id]>0);
@@ -1824,19 +1887,60 @@ function animateFlyingDot(event) {
   setTimeout(() => dot.remove(), 700);
 }
 
-let isDrawing = false, sigCtx, hasSignature = false;
-function initSignature() {
-  const canvas = document.getElementById('sig-canvas');
-  if(!canvas) return;
-  canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
-  sigCtx = canvas.getContext('2d'); sigCtx.strokeStyle = '#0f172a'; sigCtx.lineWidth = 3; sigCtx.lineCap = 'round'; sigCtx.lineJoin = 'round'; hasSignature = false;
-  const getPos = (e) => { const rect = canvas.getBoundingClientRect(); const clientX = e.clientX || (e.touches && e.touches[0].clientX); const clientY = e.clientY || (e.touches && e.touches[0].clientY); return { x: clientX - rect.left, y: clientY - rect.top }; };
-  const startDraw = (e) => { isDrawing = true; hasSignature = true; const p = getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); e.preventDefault(); };
-  const draw = (e) => { if(isDrawing) { const p = getPos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); } e.preventDefault(); };
-  const stopDraw = () => { isDrawing = false; };
-  canvas.onmousedown = startDraw; canvas.onmousemove = draw; canvas.onmouseup = stopDraw; canvas.onmouseout = stopDraw; canvas.ontouchstart = startDraw; canvas.ontouchmove = draw; canvas.ontouchend = stopDraw;
+/* ===================== SIGNATURE PAD (REUSABLE) ===================== */
+function createSigPad(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return null;
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  let drawing = false, signed = false;
+  const pos = (e) => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+
+  canvas.onpointerdown = (e) => { drawing = true; signed = true; canvas.setPointerCapture(e.pointerId); const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); };
+  canvas.onpointermove = (e) => { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); };
+  canvas.onpointerup = canvas.onpointercancel = () => { drawing = false; };
+
+  return {
+    clear() { ctx.clearRect(0, 0, canvas.width, canvas.height); signed = false; },
+    isEmpty() { return !signed; },
+    toDataURL() { return canvas.toDataURL('image/png'); }
+  };
 }
-function clearSignature() { const canvas = document.getElementById('sig-canvas'); if(canvas && sigCtx) { sigCtx.clearRect(0, 0, canvas.width, canvas.height); hasSignature = false; } }
+
+let regSigPad = null, reqSigPad = null;
+
+function renderSavedSignature() {
+  const img = document.getElementById('cart-saved-signature');
+  const empty = document.getElementById('cart-no-signature');
+  if (!img || !empty) return;
+  const has = currentUser && currentUser.signature;
+  if (has) img.src = currentUser.signature;
+  img.classList.toggle('hidden', !has);
+  empty.classList.toggle('hidden', !!has);
+}
+
+function openSignatureRequiredModal() {
+  document.getElementById('signature-required-modal').classList.remove('hidden');
+  setTimeout(() => { reqSigPad = createSigPad('req-sig-canvas'); }, 50);
+}
+
+async function saveMySignature(btn) {
+  if (!reqSigPad || reqSigPad.isEmpty()) { showCustomToast('Silakan isi tanda tangan terlebih dahulu.', 'error'); return; }
+  const original = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Menyimpan...';
+  try {
+    const url = await uploadToCloudinary(reqSigPad.toDataURL());
+    await rtdb.ref('users/' + currentUser.uid).update({ signature: url });
+    currentUser.signature = url;
+    renderSavedSignature();
+    closeModal('signature-required-modal');
+    showCustomToast('Tanda tangan berhasil disimpan.', 'success');
+  } catch (err) {
+    showCustomToast('Gagal menyimpan tanda tangan: ' + err.message, 'error');
+  } finally { btn.disabled = false; btn.innerHTML = original; }
+}
 
 function checkoutCart(event){
   const ids = Object.keys(cart).filter(id=>cart[id]>0);
@@ -1844,7 +1948,7 @@ function checkoutCart(event){
   const tglAmbil = document.getElementById('checkout-tgl').value; const jamAmbil = document.getElementById('checkout-jam').value;
   if(!tglAmbil) { showCustomToast('Mohon pilih Tanggal Pengambilan!', 'error'); return; }
   if(!jamAmbil) { showCustomToast('Mohon pilih Jam Pengambilan!', 'error'); return; }
-  if(!hasSignature) { showCustomToast('Mohon isi tanda tangan Anda!', 'error'); return; }
+  if(!currentUser.signature) { openSignatureRequiredModal(); return; }
 
 const divisi = currentUser.divisi; 
   let warningQuotaMsg = '';
@@ -1887,39 +1991,36 @@ async function processFinalCheckout(btnElement){
   const ids = Object.keys(cart).filter(id=>cart[id]>0);
   const nama = currentUser.nama; const divisi = currentUser.divisi; const subDivisi = currentUser.subDivisi;
   const tglAmbil = document.getElementById('checkout-tgl').value; const jamAmbil = document.getElementById('checkout-jam').value;
-  const canvas = document.getElementById('sig-canvas'); let signatureData = canvas.toDataURL('image/png');
-  
+
   const inputKet = document.getElementById('checkout-keterangan');
   const ketTambahan = (currentUser.role === 'admin' && inputKet && inputKet.value.trim() !== '') ? inputKet.value.trim() : null;
 
   btnElement.disabled = true; btnElement.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Mengirim...`;
   const items = ids.map(id=>{ const p = products.find(x => x.id == id); return {id:p.id, name:p.name, qty:cart[id], unit:p.unit}; });
-  const newOrderId = 'ORD' + String(Date.now()).slice(-6); const timestampNow = new Date().getTime(); 
-
-  try { signatureData = await uploadToCloudinary(signatureData); } 
-  catch (error) { showCustomToast('Gagal upload tanda tangan: ' + error.message, 'error'); btnElement.disabled = false; btnElement.innerHTML = `Lanjut Checkout`; return; }
+  const newOrderId = 'ORD' + String(Date.now()).slice(-6); const timestampNow = new Date().getTime();
 
   let multiUpdates = {};
-  multiUpdates['orders/' + newOrderId] = { tanggalBuat: timestampNow, tglAmbil: tglAmbil, jamAmbil: jamAmbil, items: items, status: 'Belum Diambil', pemohon: nama, divisi: divisi, subDivisi: subDivisi, signature: signatureData };
+  multiUpdates['orders/' + newOrderId] = { tanggalBuat: timestampNow, tglAmbil: tglAmbil, jamAmbil: jamAmbil, items: items, status: 'Belum Diambil', pemohon: nama, divisi: divisi, subDivisi: subDivisi, uid: currentUser.uid };
   items.forEach(item => {
     const p = products.find(x => x.id == item.id);
     const newTransKey = rtdb.ref('transactions').push().key;
-    multiUpdates['transactions/' + newTransKey] = { 
-      date: timestampNow, productId: item.id, divisi: divisi, subDivisi: subDivisi, pemohon: nama, masuk: 0, keluar: item.qty, signature: signatureData,
-      keterangan: ketTambahan || 'Pengambilan sesuai' 
+    multiUpdates['transactions/' + newTransKey] = {
+      date: timestampNow, productId: item.id, divisi: divisi, subDivisi: subDivisi, pemohon: nama, masuk: 0, keluar: item.qty, uid: currentUser.uid,
+      keterangan: ketTambahan || 'Pengambilan sesuai'
     };
     multiUpdates['products/' + item.id + '/stock'] = (p.stock || 0) - item.qty;
   });
-  
+
   try {
-    await rtdb.ref().update(multiUpdates); 
-    cart = {}; document.getElementById('checkout-tgl').value = ''; document.getElementById('checkout-jam').value = ''; clearSignature();
+    await rtdb.ref().update(multiUpdates);
+    cart = {}; document.getElementById('checkout-tgl').value = ''; document.getElementById('checkout-jam').value = '';
     if(inputKet) inputKet.value = '';
     renderCartBadge(); closeModal('checkout-confirm-modal'); closeModal('cart-modal');
     showInvoice(newOrderId); showCustomToast('Checkout berhasil dikirim ke Admin!', 'success');
-  } catch (error) { showCustomToast('Gagal mengirim order: ' + error.message, 'error'); } 
+  } catch (error) { showCustomToast('Gagal mengirim order: ' + error.message, 'error'); }
   finally { btnElement.disabled = false; btnElement.innerHTML = `Lanjut Checkout`; }
 }
+
 function showInvoice(orderId){
   const order = orders.find(x => x.id === orderId);
   if(!order) return;
@@ -2833,9 +2934,10 @@ function renderKartuStok(){
     let noOrder = '-'; const matchOrder = keterangan.match(/(ORD\d+)/i);
     if (matchOrder) noOrder = matchOrder[1]; else if (t.orderId) noOrder = t.orderId;
    // PERBAIKAN TTD: Paksa gambar menjadi besar (250px) lalu potong tengahnya
-    const ttdHtml = t.signature 
-  ? `<div style="width: 90px; height: 45px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-       <img src="${t.signature}" style="max-width: 100%; max-height: 100%; object-fit: contain; mix-blend-mode: multiply;" alt="TTD">
+    const sig = resolveSignature(t);
+const ttdHtml = sig 
+  ? `<div style="position: relative; width: 70px; height: 55px; margin: 0 auto;">
+       <img src="${sig}" style="position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%) scale(2.2); width: 120px; max-width: none; mix-blend-mode: multiply; z-index: 10; pointer-events: none;" alt="TTD">
      </div>` 
   : `<span class="text-gray-300 italic text-center block">ttd</span>`;
     const { unit, subUnit } = getCleanDivisi(t); 
@@ -3214,8 +3316,11 @@ function executeMassPrint(btnElement, isLiteMode = false) {
         let keterangan = t.keterangan || ((t.masuk || 0) > 0 ? 'Barang masuk / Restock' : 'Pengambilan sesuai');
         if (keterangan.toLowerCase().includes('perubahan jumlah pesanan')) keterangan = 'Refund';
         
-      const ttdHtml = t.signature 
-  ? `<img src="${t.signature}" style="display:block; margin:0 auto; width:90px; height:auto; max-height:60px; object-fit:contain; mix-blend-mode:multiply;" alt="TTD">` 
+      const sig = resolveSignature(t);
+const ttdHtml = sig 
+  ? `<div style="width: 70px; height: 50px; margin: 0 auto; overflow: hidden; text-align: center;">
+       <img src="${sig}" style="width: 140px; max-width: none; margin-left: -35px; margin-top: -20px; mix-blend-mode: multiply;" alt="TTD">
+     </div>` 
   : ``;
           
         const { unit, subUnit } = getCleanDivisi(t); 
@@ -3229,7 +3334,7 @@ function executeMassPrint(btnElement, isLiteMode = false) {
           <td style="padding: 4px; font-weight: 600; color: #374151;">${namaPerson}</td>
           <td style="padding: 4px; color: #374151;">${unit}</td>
           <td style="padding: 4px; color: #374151;">${subUnit}</td>
-          <td style="padding: 6px 4px; text-align: center; vertical-align: middle; width: 100px; overflow: visible;">${ttdHtml}</td>
+          <td style="padding: 4px; text-align: center; vertical-align: middle;">${ttdHtml}</td>
           <td style="padding: 4px; color: #374151; font-size: 9px;">${ketHtml}</td>
         </tr>`;
       });
