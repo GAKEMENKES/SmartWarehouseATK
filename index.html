@@ -1677,6 +1677,15 @@ function statusOf(p){
   return 'tersedia'; 
 }
 
+function canAccessProduct(p) {
+  if (!p.restrictedTo) return true;                 // tidak dibatasi
+  if (currentUser.role === 'admin') return true;    // admin bebas
+  const list = Array.isArray(p.restrictedTo) ? p.restrictedTo : [p.restrictedTo];
+  const unitFull = formatDivisiString(currentUser.divisi, currentUser.subDivisi);
+  // cocok jika seluruh unit diizinkan ("Kedokteran Nuklir") atau sub unit spesifik ("Penelitian (CRU)")
+  return list.includes(unitFull) || list.includes(currentUser.divisi);
+}
+
 function statusBadge(status){
   if(status==='tersedia') return `<span class="badge bg-green-100 text-green-700">Tersedia</span>`;
   if(status==='menipis') return `<span class="badge bg-amber-100 text-amber-700">Stok Terbatas</span>`;
@@ -1749,7 +1758,7 @@ function renderKatalog(){
       </div>`;
 
     html += groupedProducts[category].map(p => {
-      const status = statusOf(p); const locked = status === 'kosong';
+      const status = statusOf(p); const locked = status === 'kosong'; const noAccess = !canAccessProduct(p);
       const isAdmin = currentUser && currentUser.role === 'admin';
       const editBtnHtml = isAdmin ? `<button onclick="openEditProduct('${p.id}')" class="absolute top-2 right-2 bg-white/90 hover:bg-white text-blue-600 text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow-sm border border-blue-100 z-10"><i class="fa-solid fa-pen"></i></button>` : '';
 
@@ -1779,13 +1788,14 @@ function renderKatalog(){
           </div>
         </div>
         <div class="p-2 sm:p-4 pt-0">
-          ${locked ? `
-            <button disabled class="w-full font-bold py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-sm transition flex items-center justify-center gap-1 sm:gap-2 bg-gray-100 text-gray-400 cursor-not-allowed"><i class="fa-solid fa-ban"></i> Kosong</button>
-          ` : `
-            <div class="flex items-center gap-1 sm:gap-2">
-              <input type="number" id="qty-${p.id}" value="1" min="1" max="${p.maxTake ? Math.min(p.stock, p.maxTake) : p.stock}" class="w-10 sm:w-16 border border-gray-200 rounded-lg sm:rounded-xl px-1 sm:px-2 py-1 sm:py-1.5 text-center text-xs sm:text-sm font-bold focus:outline-none focus:border-tiket-blue text-gray-700">
-              <button onclick="addToCart('${p.id}', event)" class="flex-1 font-bold py-1 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-sm transition flex items-center justify-center gap-1 sm:gap-2 bg-tiket-yellow hover:bg-yellow-500 text-tiket-blue border-2 border-tiket-yellow shadow-sm"><i class="fa-solid fa-cart-plus"></i> Tambah</button>
-            </div>`}
+         ${locked ? `
+  <button disabled class="w-full font-bold py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-sm transition flex items-center justify-center gap-1 sm:gap-2 bg-gray-100 text-gray-400 cursor-not-allowed"><i class="fa-solid fa-ban"></i> Kosong</button>
+` : noAccess ? `
+  <button disabled class="w-full font-bold py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-sm flex items-center justify-center gap-1 sm:gap-2 bg-purple-50 text-purple-400 cursor-not-allowed"><i class="fa-solid fa-lock"></i> Akses Terbatas</button>
+` : `
+  <div class="flex items-center gap-1 sm:gap-2">
+    (isi div input qty + tombol Tambah Anda yang lama, jangan diubah)
+  </div>`}
         </div>
       </div>`;
     }).join('');
@@ -1796,6 +1806,10 @@ function renderKatalog(){
 function addToCart(id, event){
   const p = products.find(x => x.id == id);
   if(!p || statusOf(p)==='kosong') return;
+  if (!canAccessProduct(p)) {
+  showCustomToast(`Barang ini khusus untuk unit tertentu dan tidak dapat diorder oleh unit Anda.`, 'error');
+  return;
+}
   const qtyInput = document.getElementById(`qty-${id}`);
   const qtyToAdd = qtyInput ? parseInt(qtyInput.value) : 1;
   if(isNaN(qtyToAdd) || qtyToAdd < 1) { showCustomToast('Jumlah barang tidak valid.', 'error'); return; }
@@ -1946,6 +1960,8 @@ async function saveMySignature(btn) {
 function checkoutCart(event){
   const ids = Object.keys(cart).filter(id=>cart[id]>0);
   if(ids.length === 0){ showCustomToast('Keranjang order masih kosong.', 'error'); return; }
+  if (!canAccessProduct(p)) {
+  showCustomToast(`Anda tidak memiliki akses untuk memesan ${p.name}.`, 'error'); return; }
   const tglAmbil = document.getElementById('checkout-tgl').value; const jamAmbil = document.getElementById('checkout-jam').value;
   if(!tglAmbil) { showCustomToast('Mohon pilih Tanggal Pengambilan!', 'error'); return; }
   if(!jamAmbil) { showCustomToast('Mohon pilih Jam Pengambilan!', 'error'); return; }
@@ -1958,6 +1974,10 @@ const divisi = currentUser.divisi;
   for (let i = 0; i < ids.length; i++) {
     const p = products.find(x => x.id == ids[i]);
     const requestedQty = cart[ids[i]];
+    if (!canAccessProduct(p)) {
+      showCustomToast(`Anda tidak memiliki akses untuk memesan ${p.name}.`, 'error');
+      return;
+    }
     if (requestedQty > p.stock) {
       showCustomToast(`Maaf, stok aktual ${p.name} tidak mencukupi. Sisa saat ini: ${p.stock} ${p.unit}. Silakan kurangi jumlah di keranjang.`, 'error');
       return; 
